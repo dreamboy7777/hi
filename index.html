@@ -1,479 +1,479 @@
 <!DOCTYPE html>
-$<html lang="en">
-$<head>
-$    <meta charset="UTF-8">
-$    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-$    <title>MYKELS SPACE | ABSOLUTE</title>
-$    <script src="https://cdn.tailwindcss.com"></script>
-$    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-$    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-$    <style>
-$        :root { --neon: #a78bfa; --bg: #020617; }
-$        body { 
-$            background: var(--bg); color: #cbd5e1; min-height: 100vh; margin: 0; 
-$            overflow-y: auto !important; font-family: 'Inter', sans-serif;
-$            background-size: cover; background-position: center; transition: background 1s ease;
-$            -webkit-tap-highlight-color: transparent;
-$        }
-$        .overlay { 
-$            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-$            background: linear-gradient(to bottom, rgba(2, 6, 23, 0.4), rgba(2, 6, 23, 0.9));
-$            z-index: -1; pointer-events: none;
-$        }
-$        .gpu { transform: translateZ(0); backface-visibility: hidden; will-change: transform, opacity; }
-$        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.05); }
-$        .neon-border { border: 1px solid rgba(167, 139, 250, 0.3); box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
-$        .neon-text { text-shadow: 0 0 10px rgba(167, 139, 250, 0.5); color: #c4b5fd; }
-$        .cursor { position: absolute; width: 12px; height: 12px; background: var(--neon); border-radius: 50%; pointer-events: none; z-index: 1000; transition: all 0.1s linear; box-shadow: 0 0 10px var(--neon); }
-$        .cursor-label { position: absolute; left: 15px; top: 0; font-size: 10px; white-space: nowrap; color: #fff; font-weight: bold; }
-$        .emoji { position: absolute; pointer-events: none; z-index: 100; animation: fall 4s linear forwards; font-size: 2rem; opacity: 0.8; }
-$        @keyframes fall { from { transform: translateY(-10vh) rotate(0deg); opacity: 0.8; } to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
-$        .dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); transition: all 0.4s ease; opacity: 0.8; z-index: 1000; width: 90%; max-width: 600px; }
-$        .fullscreen-active { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; background: black !important; border-radius: 0 !important; border: none !important; }
-$        .fullscreen-active video { width: 100vw !important; height: 100vh !important; object-fit: contain !important; }
-$        .fullscreen-active #banner-display { display: none !important; }
-$        .profile-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3000; display: none; }
-$    </style>
-$</head>
-$<body class="flex items-center justify-center p-4" style="background-image: url('https://64.media.tumblr.com/2483e015d5da16768b0b8aedc4514872/tumblr_mwsonxHV4N1qi6frjo1_540.png');">
-$    <div class="overlay"></div>
-$
-$    <!-- JOIN SCREEN -->
-$    <div id="join-screen" class="gpu glass p-10 rounded-[2.5rem] neon-border w-full max-w-md flex flex-col gap-8 z-10">
-$        <div class="text-center">
-$            <h1 class="text-4xl font-light neon-text italic tracking-tight mb-1">mykels space</h1>
-$            <p class="text-slate-500 text-[10px] uppercase tracking-widest font-medium">Absolute P2P Suite</p>
-$        </div>
-$        <div class="flex flex-col gap-6">
-$            <div class="flex flex-col gap-2">
-$                <label class="text-[10px] font-medium text-slate-500 uppercase ml-1">Identity</label>
-$                <input id="user-name" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Who are you?">
-$                <button id="start-btn" class="mt-4 bg-slate-800 text-slate-400 p-4 rounded-2xl font-medium transition-all active:scale-95 shadow-sm cursor-not-allowed" disabled>Enter Space</button>
-$            </div>
-$            <div class="flex flex-col gap-4 p-4 rounded-2xl bg-slate-900/30 border border-slate-800">
-$                <label class="text-[10px] font-medium text-slate-500 uppercase text-center">Profile Setup</label>
-$                <div class="flex flex-col items-center gap-4">
-$                    <div class="relative">
-$                        <img id="pfp-preview" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Default" class="w-20 h-20 rounded-full border border-slate-700 p-1 object-cover opacity-80">
-$                        <input type="file" id="pfp-upload" accept="image/*" class="hidden">
-$                        <button id="pfp-btn" class="absolute -bottom-2 -right-2 bg-slate-800 text-slate-400 p-2 rounded-full text-xs hover:text-white transition">📷</button>
-$                    </div>
-$                    <div class="flex flex-col gap-2 w-full">
-$                        <input type="file" id="banner-upload" accept="image/*" class="bg-slate-900/60 border border-slate-800 p-2 rounded-lg text-xs text-slate-300 outline-none cursor-pointer">
-$                        <input id="user-desc" class="bg-slate-900/60 border border-slate-800 p-2 rounded-lg text-xs text-slate-300 outline-none" placeholder="About me... (Bio)">
-$                    </div>
-$                </div>
-$            </div>
-$            <div class="flex flex-col gap-2">
-$                <label class="text-[10px] font-medium text-slate-500 uppercase ml-1">Access Code</label>
-$                <input id="room-pass" type="text" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Type the song name...">
-$            </div>
-$        </div>
-$    </div>
-$
-$    <!-- MEETING ROOM -->
-$    <div id="meeting-room" class="hidden w-full max-w-7xl flex flex-col gap-6 h-screen max-h-[95vh]">
-$        <div class="flex justify-between items-center glass p-4 rounded-2xl neon-border gpu">
-$            <div class="flex items-center gap-6">
-$                <!-- My Profile -->
-$                <div class="flex items-center gap-3 cursor-pointer" onclick="openProfile('me')">
-$                    <img id="my-pfp-display" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 object-cover opacity-80">
-$                    <div class="flex flex-col">
-$                        <p id="my-name-display" class="font-medium text-sm text-slate-300"></p>
-$                        <p id="my-id-display" class="text-[10px] text-slate-500 font-mono"></p>
-$                    </div>
-$                </div>
-$                <!-- Peer Profile (Dynamic) -->
-$                <div id="peer-display" class="hidden flex items-center gap-3 cursor-pointer" onclick="openProfile('peer')">
-$                    <img id="peer-pfp-display" class="w-10 h-10 rounded-full bg-slate-800 border border-purple-500 object-cover opacity-80">
-$                    <div class="flex flex-col">
-$                        <p id="peer-name-display" class="font-medium text-sm text-purple-300"></p>
-$                        <p class="text-[10px] text-slate-500 font-mono uppercase tracking-tighter">Connected</p>
-$                    </div>
-$                </div>
-$            </div>
-$            <div class="flex gap-2">
-$                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend\'s ID...">
-$                <button id="connect-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-medium text-sm transition">Call Friend</button>
-$                <button id="leave-btn" class="bg-red-900/40 hover:bg-red-600 text-red-200 px-4 py-2 rounded-xl font-medium text-sm transition">Leave Space</button>
-$            </div>
-$        </div>
-$
-$        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
-$            <div id="video-container" class="lg:col-span-3 relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl gpu">
-$                <div id="banner-display" class="absolute top-0 left-0 w-full h-16 bg-cover bg-center opacity-50 border-b border-slate-800 z-20"></div>
-$                <video id="remote-video" autoplay playsinline class="w-full h-full object-contain relative z-10"></video>
-$                <div id="cursor-layer"></div>
-$                <div id="emoji-layer"></div>
-$                <div id="status" class="absolute top-6 right-6 px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-900/80 text-slate-500 border border-slate-800 z-20">Disconnected</div>
-$            </div>
-$            <div class="flex flex-col gap-4 h-full">
-$                <div class="glass p-4 rounded-3xl border border-slate-800 flex flex-col h-1/2">
-$                    <h3 class="text-xs font-medium text-slate-500 uppercase mb-2">Encrypted Chat</h3>
-$                    <div id="chat-messages" class="flex-1 overflow-y-auto text-xs space-y-2 mb-2 pr-2"></div>
-$                    <div class="flex gap-2">
-$                        <input id="chat-input" class="bg-slate-900/50 border border-slate-800 p-2 rounded-lg text-slate-300 text-xs w-full outline-none" placeholder="Write something...">
-$                        <button id="send-msg" class="bg-slate-800 p-2 rounded-lg text-xs hover:bg-purple-900 transition">Send</button>
-$                    </div>
-$                </div>
-$                <div class="glass p-4 rounded-3xl border border-slate-800 flex flex-col gap-3">
-$                    <h3 class="text-xs font-medium text-slate-500 uppercase mb-1">Controls</h3>
-$                    <div class="grid grid-cols-2 gap-2">
-$                        <button onclick="sendSfx(\'airhorn\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">📢 Airhorn</button>
-$                        <button onclick="sendSfx(\'bruh\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🤨 Bruh</button>
-$                        <button onclick="startMiniGame(\'coinflip\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🪙 Flip</button>
-$                        <button onclick="startMiniGame(\'dice\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🎲 Dice</button>
-$                    </div>
-$                    <div class="flex flex-col gap-2">
-$                        <button id="share-btn" class="w-full bg-slate-100 text-slate-900 p-3 rounded-xl font-bold hover:bg-white transition flex items-center justify-center gap-2 shadow-lg text-xs">
-$                            <span>📺</span> Share 4K Screen
-$                        </button>
-$                        <button id="stop-share-btn" class="hidden w-full bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-500 transition flex items-center justify-center gap-2 shadow-lg text-xs">
-$                            <span>🛑</span> Stop Sharing
-$                        </button>
-$                        <button id="fullscreen-btn" class="w-full bg-slate-800 text-slate-300 p-3 rounded-xl font-bold hover:bg-slate-700 transition flex items-center justify-center gap-2 text-xs">
-$                            <span>🔳</span> Watch Fullscreen
-$                        </button>
-$                    </div>
-$                </div>
-$            </div>
-$        </div>
-$    </div>
-$
-$    <div class="dock glass p-3 rounded-full flex items-center gap-3 px-5 gpu">
-$        <div class="flex items-center gap-3 border-r border-slate-700 pr-3">
-$            <button id="dock-mute" class="p-2 rounded-full bg-slate-800 hover:bg-red-900 transition text-lg" title="Mute Mic">🎤</button>
-$            <button id="dock-cam" class="p-2 rounded-full bg-slate-800 hover:bg-red-900 transition text-lg" title="Toggle Camera">📷</button>
-$        </div>
-$        <div class="flex items-center gap-2 flex-1">
-$            <input id="dock-chat-input" class="bg-slate-900/50 border border-slate-800 p-2 rounded-full text-white text-xs outline-none w-full max-w-[150px]" placeholder="Whisper...">
-$            <button id="dock-send-msg" class="bg-slate-800 p-2 rounded-full text-xs px-3 hover:bg-purple-900 transition">Send</button>
-$        </div>
-$        <div class="flex gap-2">
-$            <button onclick="sendEmoji(\'🌙\')" class="hover:scale-125 transition text-lg">🌙</button>
-$            <button onclick="sendEmoji(\'☁️\')" class="hover:scale-125 transition text-lg">☁️</button>
-$            <button onclick="sendEmoji(\'💧\')" class="hover:scale-125 transition text-lg">💧</button>
-$            <button onclick="sendEmoji(\'🥀\')" class="hover:scale-125 transition text-lg">🥀</button>
-$        </div>
-$    </div>
-$
-$    <div id="profile-modal" class="profile-modal glass p-8 rounded-[2.5rem] neon-border w-80 flex flex-col items-center gap-4 z-[3000]">
-$        <img id="modal-pfp" class="w-24 h-24 rounded-full border-2 border-purple-500 object-cover">
-$        <h2 id="modal-name" class="text-xl font-bold neon-text"></h2>
-$        <p id="modal-bio" class="text-sm text-slate-400 text-center italic"></p>
-$        <button onclick="closeProfile()" class="mt-4 bg-slate-800 text-slate-400 px-6 py-2 rounded-full text-xs hover:text-white transition">Close</button>
-$    </div>
-$
-$    <script>
-$        let peer = null, currentCall = null, dataConn = null;
-$        let myData = { name: "", pfp: "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", banner: "", bio: "" };
-$        let peerData = { name: "Friend", pfp: "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", banner: "", bio: "" };
-$        let secretKey = "ultra-secret-key";
-$        let localStream = null, screenStream = null;
-$        let isMuted = false, isCamOff = false;
-$
-$        const joinScreen = document.getElementById('join-screen');
-$        const meetingRoom = document.getElementById('meeting-room');
-$        const startBtn = document.getElementById('start-btn');
-$        const remoteVideo = document.getElementById('remote-video');
-$        const statusLabel = document.getElementById('status');
-$        const cursorLayer = document.getElementById('cursor-layer');
-$        const emojiLayer = document.getElementById('emoji-layer');
-$
-$        document.getElementById('pfp-btn').onclick = () => document.getElementById('pfp-upload').click();
-$        document.getElementById('pfp-upload').onchange = (e) => {
-$            const file = e.target.files[0];
-$            if (!file) return;
-$            const reader = new FileReader();
-$            reader.onload = (ev) => {
-$                document.getElementById('pfp-preview').src = ev.target.result;
-$                myData.pfp = ev.target.result;
-$            };
-$            reader.readAsDataURL(file);
-$        };
-$
-$        document.getElementById('banner-upload').onchange = (e) => {
-$            const file = e.target.files[0];
-$            if (!file) return;
-$            const reader = new FileReader();
-$            reader.onload = (ev) => {
-$                myData.banner = ev.target.result;
-$            };
-$            reader.readAsDataURL(file);
-$        };
-$
-$        document.getElementById('room-pass').oninput = (e) => {
-$            const val = e.target.value.toLowerCase().trim();
-$            if (val === "leave by whirr") {
-$                startBtn.disabled = false;
-$                startBtn.classList.replace('bg-slate-800', 'bg-purple-600');
-$                startBtn.classList.replace('text-slate-400', 'text-white');
-$                startBtn.classList.remove('cursor-not-allowed');
-$            } else {
-$                startBtn.disabled = true;
-$                startBtn.classList.replace('bg-purple-600', 'bg-slate-800');
-$                startBtn.classList.replace('text-white', 'text-slate-400');
-$                startBtn.classList.add('cursor-not-allowed');
-$            }
-$        };
-$
-$        startBtn.onclick = async () => {
-$            myData.name = document.getElementById('user-name').value;
-$            myData.bio = document.getElementById('user-desc').value;
-$            if (!myData.name) return alert("Enter your name!");
-$
-$            try { 
-$                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }); 
-$            } catch (e) { 
-$                console.log("Media denied"); 
-$            }
-$
-$            peer = new Peer({
-$                config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
-$            });
-$            
-$            peer.on('open', (id) => {
-$                joinScreen.classList.add('hidden');
-$                meetingRoom.classList.remove('hidden');
-$                document.getElementById('my-name-display').innerText = myData.name;
-$                document.getElementById('my-id-display').innerText = "ID: " + id;
-$                document.getElementById('my-pfp-display').src = myData.pfp;
-$                if (myData.banner) document.getElementById('banner-display').style.backgroundImage = `url('\${myData.banner}')`;
-$            });
-$
-$            peer.on('call', (call) => { 
-$                call.answer(localStream); 
-$                handleCall(call); 
-$            });
-$
-$            peer.on('connection', (conn) => handleDataConnection(conn));
-$        };
-$
-$        document.getElementById('connect-btn').onclick = () => {
-$            const peerId = document.getElementById('peer-id').value.trim();
-$            if (!peerId) return alert("Enter a valid Friend ID!");
-$            const call = peer.call(peerId, localStream);
-$            const conn = peer.connect(peerId);
-$            handleCall(call);
-$            handleDataConnection(conn);
-$        };
-$
-$        function handleCall(call) {
-$            currentCall = call;
-$            statusLabel.innerText = "Live";
-$            statusLabel.classList.replace('text-slate-400', 'text-green-400');
-$            call.on('stream', (remoteStream) => { 
-$                remoteVideo.srcObject = remoteStream; 
-$                remoteVideo.play().catch(e => {
-$                    document.addEventListener('click', () => remoteVideo.play(), { once: true });
-$                });
-$            });
-$        }
-$
-$        function encrypt(text) { return CryptoJS.AES.encrypt(text, secretKey).toString(); }
-$        function decrypt(cipher) {
-$            try { return CryptoJS.AES.decrypt(cipher, secretKey).toString(CryptoJS.enc.Utf8); } 
-$            catch (e) { return "[Decryption Error]"; }
-$        }
-$
-$        function handleDataConnection(conn) {
-$            dataConn = conn;
-$            conn.on('open', () => {
-$                conn.send(encrypt(JSON.stringify({ type: 'metadata', data: myData })));
-$            });
-$            conn.on('data', (data) => {
-$                try {
-$                    const decrypted = JSON.parse(decrypt(data));
-$                    if (decrypted.type === 'metadata') {
-$                        peerData = decrypted.data;
-$                        document.getElementById('peer-display').classList.remove('hidden');
-$                        document.getElementById('peer-name-display').innerText = peerData.name;
-$                        document.getElementById('peer-pfp-display').src = peerData.pfp;
-$                    } else if (decrypted.type === 'chat') {
-$                        addChatMessage(decrypted.user, decrypted.msg);
-$                    } else if (decrypted.type === 'emoji') {
-$                        spawnEmoji(decrypted.emoji);
-$                    } else if (decrypted.type === 'cursor') {
-$                        moveCursor(decrypted.user, decrypted.x, decrypted.y);
-$                    } else if (decrypted.type === 'game') {
-$                        handleGame(decrypted.game, decrypted.val);
-$                    }
-$                } catch(e) { console.log("Data decrypt failed"); }
-$            });
-$        }
-$
-$        function sendChatMessage(inputId, btnId) {
-$            const input = document.getElementById(inputId);
-$            const msg = input.value;
-$            if (!msg || !dataConn) return;
-$            dataConn.send(encrypt(JSON.stringify({ type: 'chat', user: myData.name, msg: msg })));
-$            addChatMessage("You", msg);
-$            input.value = "";
-$        }
-$
-$        document.getElementById('send-msg').onclick = () => sendChatMessage('chat-input', 'send-msg');
-$        document.getElementById('dock-send-msg').onclick = () => sendChatMessage('dock-chat-input', 'dock-send-msg');
-$
-$        function addChatMessage(user, msg) {
-$            const div = document.createElement('div');
-$            div.className = "chat-msg flex flex-col";
-$            div.innerHTML = `<span class="text-purple-400 font-bold text-[10px]\${user === 'You' ? 'text-right' : ''}">\${user}</span><span class="bg-slate-800 p-2 rounded-lg text-white">\${msg}</span>`;
-$            const container = document.getElementById('chat-messages');
-$            container.appendChild(div);
-$            container.scrollTop = container.scrollHeight;
-$        }
-$
-$        window.onmousemove = (e) => {
-$            if (!dataConn) return;
-$            const x = e.clientX / window.innerWidth;
-$            const y = e.clientY / window.innerHeight;
-$            dataConn.send(encrypt(JSON.stringify({ type: 'cursor', user: myData.name, x, y })));
-$        };
-$
-$        function moveCursor(user, x, y) {
-$            let cursor = document.getElementById('cursor-' + user.replace(/\s/g, ''));
-$            if (!cursor) {
-$                cursor = document.createElement('div');
-$                cursor.id = 'cursor-' + user.replace(/\s/g, '');
-$                cursor.className = "cursor";
-$                cursor.innerHTML = `<div class="cursor-label">\${user}</div>`;
-$                cursorLayer.appendChild(cursor);
-$            }
-$            cursor.style.left = (x * 100) + "%";
-$            cursor.style.top = (y * 100) + "%";
-$        }
-$
-$        function spawnEmoji(emoji) {
-$            const el = document.createElement('div');
-$            el.className = "emoji";
-$            el.innerText = emoji;
-$            el.style.left = Math.random() * 100 + "vw";
-$            emojiLayer.appendChild(el);
-$            setTimeout(() => el.remove(), 4000);
-$        }
-$
-$        function sendEmoji(emoji) {
-$            if (!dataConn) return;
-$            dataConn.send(encrypt(JSON.stringify({ type: 'emoji', emoji: emoji })));
-$            spawnEmoji(emoji);
-$        }
-$
-$        function sendSfx(sound) {
-$            if (!dataConn) return;
-$            console.log("SFX: " + sound);
-$        }
-$
-$        function startMiniGame(game) {
-$            if (!dataConn) return;
-$            const val = game === 'coinflip' ? (Math.random() > 0.5 ? 'Heads' : 'Tails') : Math.floor(Math.random() * 6) + 1;
-$            dataConn.send(encrypt(JSON.stringify({ type: 'game', game: game, val: val })));
-$        }
-$
-$        function handleGame(game, val) {
-$            alert(`GAME: \${game.toUpperCase()} Result: \${val}!`);
-$        }
-$
-$        document.getElementById('dock-mute').onclick = () => {
-$            if (localStream) {
-$                isMuted = !isMuted;
-$                localStream.getAudioTracks()[0].enabled = !isMuted;
-$                document.getElementById('dock-mute').classList.toggle('bg-red-600');
-$                document.getElementById('dock-mute').innerText = isMuted ? '🔇' : '🎤';
-$            }
-$        };
-$
-$        document.getElementById('dock-cam').onclick = () => {
-$            if (localStream) {
-$                isCamOff = !isCamOff;
-$                localStream.getVideoTracks()[0].enabled = !isCamOff;
-$                document.getElementById('dock-cam').classList.toggle('bg-red-600');
-$                document.getElementById('dock-cam').innerText = isCamOff ? '🚫' : '📷';
-$            }
-$        };
-$
-$        document.getElementById('share-btn').onclick = async () => {
-$            try {
-$                screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-$                    video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }, 
-$                    audio: true 
-$                });
-$                
-$                if (currentCall && currentCall.peerConnection) {
-$                    const videoSender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
-$                    if (videoSender) {
-$                        videoSender.replaceTrack(screenStream.getVideoTracks()[0]);
-$                    }
-$                } else {
-$                    const targetId = document.getElementById('peer-id').value.trim();
-$                    if (!targetId) return alert("Connect first!");
-$                    const call = peer.call(targetId, screenStream);
-$                    handleCall(call);
-$                }
-$                
-$                document.getElementById('share-btn').classList.add('hidden');
-$                document.getElementById('stop-share-btn').classList.remove('hidden');
-$                document.getElementById('status').innerText = "Streaming 4K";
-$                document.getElementById('status').classList.replace('text-slate-500', 'text-red-400');
-$            } catch (err) { 
-$                console.error(err);
-$                alert("Screen share failed: " + err.message);
-$            }
-$        };
-$
-$        document.getElementById('stop-share-btn').onclick = () => {
-$            if (screenStream) {
-$                screenStream.getTracks().forEach(track => track.stop());
-$                if (currentCall && currentCall.peerConnection && localStream) {
-$                    const videoSender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
-$                    if (videoSender) {
-$                        videoSender.replaceTrack(localStream.getVideoTracks()[0]);
-$                    }
-$                }
-$                document.getElementById('stop-share-btn').classList.add('hidden');
-$                document.getElementById('share-btn').classList.remove('hidden');
-$                document.getElementById('status').innerText = "Live";
-$                document.getElementById('status').classList.replace('text-red-400', 'text-green-400');
-$            }
-$        };
-$
-$        document.getElementById('fullscreen-btn').onclick = () => {
-$            const videoContainer = document.getElementById('video-container');
-$            videoContainer.classList.toggle('fullscreen-active');
-$            document.getElementById('fullscreen-btn').innerText = videoContainer.classList.contains('fullscreen-active') ? "🔳 Exit Fullscreen" : "🔳 Watch Fullscreen";
-$        };
-$
-$        document.getElementById('leave-btn').onclick = () => {
-$            if (confirm("Are you sure you want to leave the space?")) {
-$                if (dataConn) dataConn.close();
-$                if (currentCall) currentCall.close();
-$                if (peer) peer.destroy();
-$                if (localStream) localStream.getTracks().forEach(t => t.stop());
-$                if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-$                window.location.reload();
-$            }
-$        };
-$
-$        function openProfile(user) {
-$            const modal = document.getElementById('profile-modal');
-$            const nameEl = document.getElementById('modal-name');
-$            const bioEl = document.getElementById('modal-bio');
-$            const pfpEl = document.getElementById('modal-pfp');
-$
-$            if (user === 'me') {
-$                nameEl.innerText = myData.name;
-$                bioEl.innerText = myData.bio || "No bio provided.";
-$                pfpEl.src = myData.pfp;
-$            } else {
-$                nameEl.innerText = peerData.name;
-$                bioEl.innerText = peerData.bio || "A mysterious walker in the void.";
-$                pfpEl.src = peerData.pfp;
-$            }
-$            modal.style.display = 'block';
-$        }
-$
-$        function closeProfile() {
-$            document.getElementById('profile-modal').style.display = 'none';
-$        }
-$    </script>
-$</body>
-$</html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MYKELS SPACE | ABSOLUTE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root { --neon: #a78bfa; --bg: #020617; }
+        body { 
+            background: var(--bg); color: #cbd5e1; min-height: 100vh; margin: 0; 
+            overflow-y: auto !important; font-family: 'Inter', sans-serif;
+            background-size: cover; background-position: center; transition: background 1s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: linear-gradient(to bottom, rgba(2, 6, 23, 0.4), rgba(2, 6, 23, 0.9));
+            z-index: -1; pointer-events: none;
+        }
+        .gpu { transform: translateZ(0); backface-visibility: hidden; will-change: transform, opacity; }
+        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.05); }
+        .neon-border { border: 1px solid rgba(167, 139, 250, 0.3); box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
+        .neon-text { text-shadow: 0 0 10px rgba(167, 139, 250, 0.5); color: #c4b5fd; }
+        .cursor { position: absolute; width: 12px; height: 12px; background: var(--neon); border-radius: 50%; pointer-events: none; z-index: 1000; transition: all 0.1s linear; box-shadow: 0 0 10px var(--neon); }
+        .cursor-label { position: absolute; left: 15px; top: 0; font-size: 10px; white-space: nowrap; color: #fff; font-weight: bold; }
+        .emoji { position: absolute; pointer-events: none; z-index: 100; animation: fall 4s linear forwards; font-size: 2rem; opacity: 0.8; }
+        @keyframes fall { from { transform: translateY(-10vh) rotate(0deg); opacity: 0.8; } to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
+        .dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); transition: all 0.4s ease; opacity: 0.8; z-index: 1000; width: 90%; max-width: 600px; }
+        .fullscreen-active { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; background: black !important; border-radius: 0 !important; border: none !important; }
+        .fullscreen-active video { width: 100vw !important; height: 100vh !important; object-fit: contain !important; }
+        .fullscreen-active #banner-display { display: none !important; }
+        .profile-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3000; display: none; }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4" style="background-image: url('https://64.media.tumblr.com/2483e015d5da16768b0b8aedc4514872/tumblr_mwsonxHV4N1qi6frjo1_540.png');">
+    <div class="overlay"></div>
+
+    <!-- JOIN SCREEN -->
+    <div id="join-screen" class="gpu glass p-10 rounded-[2.5rem] neon-border w-full max-w-md flex flex-col gap-8 z-10">
+        <div class="text-center">
+            <h1 class="text-4xl font-light neon-text italic tracking-tight mb-1">mykels space</h1>
+            <p class="text-slate-500 text-[10px] uppercase tracking-widest font-medium">Absolute P2P Suite</p>
+        </div>
+        <div class="flex flex-col gap-6">
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-medium text-slate-500 uppercase ml-1">Identity</label>
+                <input id="user-name" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Who are you?">
+                <button id="start-btn" class="mt-4 bg-slate-800 text-slate-400 p-4 rounded-2xl font-medium transition-all active:scale-95 shadow-sm cursor-not-allowed" disabled>Enter Space</button>
+            </div>
+            <div class="flex flex-col gap-4 p-4 rounded-2xl bg-slate-900/30 border border-slate-800">
+                <label class="text-[10px] font-medium text-slate-500 uppercase text-center">Profile Setup</label>
+                <div class="flex flex-col items-center gap-4">
+                    <div class="relative">
+                        <img id="pfp-preview" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Default" class="w-20 h-20 rounded-full border border-slate-700 p-1 object-cover opacity-80">
+                        <input type="file" id="pfp-upload" accept="image/*" class="hidden">
+                        <button id="pfp-btn" class="absolute -bottom-2 -right-2 bg-slate-800 text-slate-400 p-2 rounded-full text-xs hover:text-white transition">📷</button>
+                    </div>
+                    <div class="flex flex-col gap-2 w-full">
+                        <input type="file" id="banner-upload" accept="image/*" class="bg-slate-900/60 border border-slate-800 p-2 rounded-lg text-xs text-slate-300 outline-none cursor-pointer">
+                        <input id="user-desc" class="bg-slate-900/60 border border-slate-800 p-2 rounded-lg text-xs text-slate-300 outline-none" placeholder="About me... (Bio)">
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-medium text-slate-500 uppercase ml-1">Access Code</label>
+                <input id="room-pass" type="text" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Type the song name...">
+            </div>
+        </div>
+    </div>
+
+    <!-- MEETING ROOM -->
+    <div id="meeting-room" class="hidden w-full max-w-7xl flex flex-col gap-6 h-screen max-h-[95vh]">
+        <div class="flex justify-between items-center glass p-4 rounded-2xl neon-border gpu">
+            <div class="flex items-center gap-6">
+                <!-- My Profile -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="openProfile('me')">
+                    <img id="my-pfp-display" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 object-cover opacity-80">
+                    <div class="flex flex-col">
+                        <p id="my-name-display" class="font-medium text-sm text-slate-300"></p>
+                        <p id="my-id-display" class="text-[10px] text-slate-500 font-mono"></p>
+                    </div>
+                </div>
+                <!-- Peer Profile (Dynamic) -->
+                <div id="peer-display" class="hidden flex items-center gap-3 cursor-pointer" onclick="openProfile('peer')">
+                    <img id="peer-pfp-display" class="w-10 h-10 rounded-full bg-slate-800 border border-purple-500 object-cover opacity-80">
+                    <div class="flex flex-col">
+                        <p id="peer-name-display" class="font-medium text-sm text-purple-300"></p>
+                        <p class="text-[10px] text-slate-500 font-mono uppercase tracking-tighter">Connected</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend's ID...">
+                <button id="connect-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-medium text-sm transition">Call Friend</button>
+                <button id="leave-btn" class="bg-red-900/40 hover:bg-red-600 text-red-200 px-4 py-2 rounded-xl font-medium text-sm transition">Leave Space</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
+            <div id="video-container" class="lg:col-span-3 relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl gpu">
+                <div id="banner-display" class="absolute top-0 left-0 w-full h-16 bg-cover bg-center opacity-50 border-b border-slate-800 z-20"></div>
+                <video id="remote-video" autoplay playsinline class="w-full h-full object-contain relative z-10"></video>
+                <div id="cursor-layer"></div>
+                <div id="emoji-layer"></div>
+                <div id="status" class="absolute top-6 right-6 px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-900/80 text-slate-500 border border-slate-800 z-20">Disconnected</div>
+            </div>
+            <div class="flex flex-col gap-4 h-full">
+                <div class="glass p-4 rounded-3xl border border-slate-800 flex flex-col h-1/2">
+                    <h3 class="text-xs font-medium text-slate-500 uppercase mb-2">Encrypted Chat</h3>
+                    <div id="chat-messages" class="flex-1 overflow-y-auto text-xs space-y-2 mb-2 pr-2"></div>
+                    <div class="flex gap-2">
+                        <input id="chat-input" class="bg-slate-900/50 border border-slate-800 p-2 rounded-lg text-slate-300 text-xs w-full outline-none" placeholder="Write something...">
+                        <button id="send-msg" class="bg-slate-800 p-2 rounded-lg text-xs hover:bg-purple-900 transition">Send</button>
+                    </div>
+                </div>
+                <div class="glass p-4 rounded-3xl border border-slate-800 flex flex-col gap-3">
+                    <h3 class="text-xs font-medium text-slate-500 uppercase mb-1">Controls</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="sendSfx('airhorn')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">📢 Airhorn</button>
+                        <button onclick="sendSfx('bruh')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🤨 Bruh</button>
+                        <button onclick="startMiniGame('coinflip')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🪙 Flip</button>
+                        <button onclick="startMiniGame('dice')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🎲 Dice</button>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <button id="share-btn" class="w-full bg-slate-100 text-slate-900 p-3 rounded-xl font-bold hover:bg-white transition flex items-center justify-center gap-2 shadow-lg text-xs">
+                            <span>📺</span> Share 4K Screen
+                        </button>
+                        <button id="stop-share-btn" class="hidden w-full bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-500 transition flex items-center justify-center gap-2 shadow-lg text-xs">
+                            <span>🛑</span> Stop Sharing
+                        </button>
+                        <button id="fullscreen-btn" class="w-full bg-slate-800 text-slate-300 p-3 rounded-xl font-bold hover:bg-slate-700 transition flex items-center justify-center gap-2 text-xs">
+                            <span>🔳</span> Watch Fullscreen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dock glass p-3 rounded-full flex items-center gap-3 px-5 gpu">
+        <div class="flex items-center gap-3 border-r border-slate-700 pr-3">
+            <button id="dock-mute" class="p-2 rounded-full bg-slate-800 hover:bg-red-900 transition text-lg" title="Mute Mic">🎤</button>
+            <button id="dock-cam" class="p-2 rounded-full bg-slate-800 hover:bg-red-900 transition text-lg" title="Toggle Camera">📷</button>
+        </div>
+        <div class="flex items-center gap-2 flex-1">
+            <input id="dock-chat-input" class="bg-slate-900/50 border border-slate-800 p-2 rounded-full text-white text-xs outline-none w-full max-w-[150px]" placeholder="Whisper...">
+            <button id="dock-send-msg" class="bg-slate-800 p-2 rounded-full text-xs px-3 hover:bg-purple-900 transition">Send</button>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="sendEmoji('🌙')" class="hover:scale-125 transition text-lg">🌙</button>
+            <button onclick="sendEmoji('☁️')" class="hover:scale-125 transition text-lg">☁️</button>
+            <button onclick="sendEmoji('💧')" class="hover:scale-125 transition text-lg">💧</button>
+            <button onclick="sendEmoji('🥀')" class="hover:scale-125 transition text-lg">🥀</button>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="profile-modal glass p-8 rounded-[2.5rem] neon-border w-80 flex flex-col items-center gap-4 z-[3000]">
+        <img id="modal-pfp" class="w-24 h-24 rounded-full border-2 border-purple-500 object-cover">
+        <h2 id="modal-name" class="text-xl font-bold neon-text"></h2>
+        <p id="modal-bio" class="text-sm text-slate-400 text-center italic"></p>
+        <button onclick="closeProfile()" class="mt-4 bg-slate-800 text-slate-400 px-6 py-2 rounded-full text-xs hover:text-white transition">Close</button>
+    </div>
+
+    <script>
+        let peer = null, currentCall = null, dataConn = null;
+        let myData = { name: "", pfp: "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", banner: "", bio: "" };
+        let peerData = { name: "Friend", pfp: "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", banner: "", bio: "" };
+        let secretKey = "ultra-secret-key";
+        let localStream = null, screenStream = null;
+        let isMuted = false, isCamOff = false;
+
+        const joinScreen = document.getElementById('join-screen');
+        const meetingRoom = document.getElementById('meeting-room');
+        const startBtn = document.getElementById('start-btn');
+        const remoteVideo = document.getElementById('remote-video');
+        const statusLabel = document.getElementById('status');
+        const cursorLayer = document.getElementById('cursor-layer');
+        const emojiLayer = document.getElementById('emoji-layer');
+
+        document.getElementById('pfp-btn').onclick = () => document.getElementById('pfp-upload').click();
+        document.getElementById('pfp-upload').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                document.getElementById('pfp-preview').src = ev.target.result;
+                myData.pfp = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        document.getElementById('banner-upload').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                myData.banner = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        document.getElementById('room-pass').oninput = (e) => {
+            const val = e.target.value.toLowerCase().trim();
+            if (val === "leave by whirr") {
+                startBtn.disabled = false;
+                startBtn.classList.replace('bg-slate-800', 'bg-purple-600');
+                startBtn.classList.replace('text-slate-400', 'text-white');
+                startBtn.classList.remove('cursor-not-allowed');
+            } else {
+                startBtn.disabled = true;
+                startBtn.classList.replace('bg-purple-600', 'bg-slate-800');
+                startBtn.classList.replace('text-white', 'text-slate-400');
+                startBtn.classList.add('cursor-not-allowed');
+            }
+        };
+
+        startBtn.onclick = async () => {
+            myData.name = document.getElementById('user-name').value;
+            myData.bio = document.getElementById('user-desc').value;
+            if (!myData.name) return alert("Enter your name!");
+
+            try { 
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }); 
+            } catch (e) { 
+                console.log("Media denied"); 
+            }
+
+            peer = new Peer({
+                config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
+            });
+            
+            peer.on('open', (id) => {
+                joinScreen.classList.add('hidden');
+                meetingRoom.classList.remove('hidden');
+                document.getElementById('my-name-display').innerText = myData.name;
+                document.getElementById('my-id-display').innerText = "ID: " + id;
+                document.getElementById('my-pfp-display').src = myData.pfp;
+                if (myData.banner) document.getElementById('banner-display').style.backgroundImage = `url('${myData.banner}')`;
+            });
+
+            peer.on('call', (call) => { 
+                call.answer(localStream); 
+                handleCall(call); 
+            });
+
+            peer.on('connection', (conn) => handleDataConnection(conn));
+        };
+
+        document.getElementById('connect-btn').onclick = () => {
+            const peerId = document.getElementById('peer-id').value.trim();
+            if (!peerId) return alert("Enter a valid Friend ID!");
+            const call = peer.call(peerId, localStream);
+            const conn = peer.connect(peerId);
+            handleCall(call);
+            handleDataConnection(conn);
+        };
+
+        function handleCall(call) {
+            currentCall = call;
+            statusLabel.innerText = "Live";
+            statusLabel.classList.replace('text-slate-400', 'text-green-400');
+            call.on('stream', (remoteStream) => { 
+                remoteVideo.srcObject = remoteStream; 
+                remoteVideo.play().catch(e => {
+                    document.addEventListener('click', () => remoteVideo.play(), { once: true });
+                });
+            });
+        }
+
+        function encrypt(text) { return CryptoJS.AES.encrypt(text, secretKey).toString(); }
+        function decrypt(cipher) {
+            try { return CryptoJS.AES.decrypt(cipher, secretKey).toString(CryptoJS.enc.Utf8); } 
+            catch (e) { return "[Decryption Error]"; }
+        }
+
+        function handleDataConnection(conn) {
+            dataConn = conn;
+            conn.on('open', () => {
+                conn.send(encrypt(JSON.stringify({ type: 'metadata', data: myData })));
+            });
+            conn.on('data', (data) => {
+                try {
+                    const decrypted = JSON.parse(decrypt(data));
+                    if (decrypted.type === 'metadata') {
+                        peerData = decrypted.data;
+                        document.getElementById('peer-display').classList.remove('hidden');
+                        document.getElementById('peer-name-display').innerText = peerData.name;
+                        document.getElementById('peer-pfp-display').src = peerData.pfp;
+                    } else if (decrypted.type === 'chat') {
+                        addChatMessage(decrypted.user, decrypted.msg);
+                    } else if (decrypted.type === 'emoji') {
+                        spawnEmoji(decrypted.emoji);
+                    } else if (decrypted.type === 'cursor') {
+                        moveCursor(decrypted.user, decrypted.x, decrypted.y);
+                    } else if (decrypted.type === 'game') {
+                        handleGame(decrypted.game, decrypted.val);
+                    }
+                } catch(e) { console.log("Data decrypt failed"); }
+            });
+        }
+
+        function sendChatMessage(inputId, btnId) {
+            const input = document.getElementById(inputId);
+            const msg = input.value;
+            if (!msg || !dataConn) return;
+            dataConn.send(encrypt(JSON.stringify({ type: 'chat', user: myData.name, msg: msg })));
+            addChatMessage("You", msg);
+            input.value = "";
+        }
+
+        document.getElementById('send-msg').onclick = () => sendChatMessage('chat-input', 'send-msg');
+        document.getElementById('dock-send-msg').onclick = () => sendChatMessage('dock-chat-input', 'dock-send-msg');
+
+        function addChatMessage(user, msg) {
+            const div = document.createElement('div');
+            div.className = "chat-msg flex flex-col";
+            div.innerHTML = `<span class="text-purple-400 font-bold text-[10px]${user === 'You' ? 'text-right' : ''}">${user}</span><span class="bg-slate-800 p-2 rounded-lg text-white">${msg}</span>`;
+            const container = document.getElementById('chat-messages');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        window.onmousemove = (e) => {
+            if (!dataConn) return;
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            dataConn.send(encrypt(JSON.stringify({ type: 'cursor', user: myData.name, x, y })));
+        };
+
+        function moveCursor(user, x, y) {
+            let cursor = document.getElementById('cursor-' + user.replace(/\s/g, ''));
+            if (!cursor) {
+                cursor = document.createElement('div');
+                cursor.id = 'cursor-' + user.replace(/\s/g, '');
+                cursor.className = "cursor";
+                cursor.innerHTML = `<div class="cursor-label">${user}</div>`;
+                cursorLayer.appendChild(cursor);
+            }
+            cursor.style.left = (x * 100) + "%";
+            cursor.style.top = (y * 100) + "%";
+        }
+
+        function spawnEmoji(emoji) {
+            const el = document.createElement('div');
+            el.className = "emoji";
+            el.innerText = emoji;
+            el.style.left = Math.random() * 100 + "vw";
+            emojiLayer.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
+        function sendEmoji(emoji) {
+            if (!dataConn) return;
+            dataConn.send(encrypt(JSON.stringify({ type: 'emoji', emoji: emoji })));
+            spawnEmoji(emoji);
+        }
+
+        function sendSfx(sound) {
+            if (!dataConn) return;
+            console.log("SFX: " + sound);
+        }
+
+        function startMiniGame(game) {
+            if (!dataConn) return;
+            const val = game === 'coinflip' ? (Math.random() > 0.5 ? 'Heads' : 'Tails') : Math.floor(Math.random() * 6) + 1;
+            dataConn.send(encrypt(JSON.stringify({ type: 'game', game: game, val: val })));
+        }
+
+        function handleGame(game, val) {
+            alert(`GAME: ${game.toUpperCase()} Result: ${val}!`);
+        }
+
+        document.getElementById('dock-mute').onclick = () => {
+            if (localStream) {
+                isMuted = !isMuted;
+                localStream.getAudioTracks()[0].enabled = !isMuted;
+                document.getElementById('dock-mute').classList.toggle('bg-red-600');
+                document.getElementById('dock-mute').innerText = isMuted ? '🔇' : '🎤';
+            }
+        };
+
+        document.getElementById('dock-cam').onclick = () => {
+            if (localStream) {
+                isCamOff = !isCamOff;
+                localStream.getVideoTracks()[0].enabled = !isCamOff;
+                document.getElementById('dock-cam').classList.toggle('bg-red-600');
+                document.getElementById('dock-cam').innerText = isCamOff ? '🚫' : '📷';
+            }
+        };
+
+        document.getElementById('share-btn').onclick = async () => {
+            try {
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ 
+                    video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }, 
+                    audio: true 
+                });
+                
+                if (currentCall && currentCall.peerConnection) {
+                    const videoSender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
+                    if (videoSender) {
+                        videoSender.replaceTrack(screenStream.getVideoTracks()[0]);
+                    }
+                } else {
+                    const targetId = document.getElementById('peer-id').value.trim();
+                    if (!targetId) return alert("Connect first!");
+                    const call = peer.call(targetId, screenStream);
+                    handleCall(call);
+                }
+                
+                document.getElementById('share-btn').classList.add('hidden');
+                document.getElementById('stop-share-btn').classList.remove('hidden');
+                document.getElementById('status').innerText = "Streaming 4K";
+                document.getElementById('status').classList.replace('text-slate-500', 'text-red-400');
+            } catch (err) { 
+                console.error(err);
+                alert("Screen share failed: " + err.message);
+            }
+        };
+
+        document.getElementById('stop-share-btn').onclick = () => {
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                if (currentCall && currentCall.peerConnection && localStream) {
+                    const videoSender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
+                    if (videoSender) {
+                        videoSender.replaceTrack(localStream.getVideoTracks()[0]);
+                    }
+                }
+                document.getElementById('stop-share-btn').classList.add('hidden');
+                document.getElementById('share-btn').classList.remove('hidden');
+                document.getElementById('status').innerText = "Live";
+                document.getElementById('status').classList.replace('text-red-400', 'text-green-400');
+            }
+        };
+
+        document.getElementById('fullscreen-btn').onclick = () => {
+            const videoContainer = document.getElementById('video-container');
+            videoContainer.classList.toggle('fullscreen-active');
+            document.getElementById('fullscreen-btn').innerText = videoContainer.classList.contains('fullscreen-active') ? "🔳 Exit Fullscreen" : "🔳 Watch Fullscreen";
+        };
+
+        document.getElementById('leave-btn').onclick = () => {
+            if (confirm("Are you sure you want to leave the space?")) {
+                if (dataConn) dataConn.close();
+                if (currentCall) currentCall.close();
+                if (peer) peer.destroy();
+                if (localStream) localStream.getTracks().forEach(t => t.stop());
+                if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+                window.location.reload();
+            }
+        };
+
+        function openProfile(user) {
+            const modal = document.getElementById('profile-modal');
+            const nameEl = document.getElementById('modal-name');
+            const bioEl = document.getElementById('modal-bio');
+            const pfpEl = document.getElementById('modal-pfp');
+
+            if (user === 'me') {
+                nameEl.innerText = myData.name;
+                bioEl.innerText = myData.bio || "No bio provided.";
+                pfpEl.src = myData.pfp;
+            } else {
+                nameEl.innerText = peerData.name;
+                bioEl.innerText = peerData.bio || "A mysterious walker in the void.";
+                pfpEl.src = peerData.pfp;
+            }
+            modal.style.display = 'block';
+        }
+
+        function closeProfile() {
+            document.getElementById('profile-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
