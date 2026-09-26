@@ -49,6 +49,9 @@
                 <label class="text-[10px] font-medium text-slate-500 uppercase ml-1">Identity</label>
                 <input id="user-name" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Who are you?">
             </div>
+            
+            <button id="start-btn" class="bg-slate-800 text-slate-400 p-4 rounded-2xl font-medium transition-all active:scale-95 shadow-sm cursor-not-allowed" disabled>Enter</button>
+
             <div class="flex flex-col gap-4 p-4 rounded-2xl bg-slate-900/30 border border-slate-800">
                 <label class="text-[10px] font-medium text-slate-500 uppercase text-center">Profile Setup</label>
                 <div class="flex flex-col items-center gap-4">
@@ -67,7 +70,6 @@
                 <label class="text-[10px] font-medium text-slate-500 uppercase ml-1">Access Code</label>
                 <input id="room-pass" type="text" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Type the song name...">
             </div>
-            <button id="start-btn" class="bg-slate-800 text-slate-400 p-4 rounded-2xl font-medium transition-all active:scale-95 shadow-sm cursor-not-allowed" disabled>Enter</button>
         </div>
     </div>
 
@@ -82,7 +84,7 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend\'s ID...">
+                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend's ID...">
                 <button id="connect-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-medium text-sm transition">Call Friend</button>
             </div>
         </div>
@@ -107,10 +109,10 @@
                 <div class="glass p-4 rounded-3xl border border-slate-800 flex flex-col gap-3">
                     <h3 class="text-xs font-medium text-slate-500 uppercase mb-1">Controls</h3>
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="sendSfx(\'airhorn\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">📢 Airhorn</button>
-                        <button onclick="sendSfx(\'bruh\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🤨 Bruh</button>
-                        <button onclick="startMiniGame(\'coinflip\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🪙 Flip</button>
-                        <button onclick="startMiniGame(\'dice\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🎲 Dice</button>
+                        <button onclick="sendSfx('airhorn')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">📢 Airhorn</button>
+                        <button onclick="sendSfx('bruh')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🤨 Bruh</button>
+                        <button onclick="startMiniGame('coinflip')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🪙 Flip</button>
+                        <button onclick="startMiniGame('dice')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🎲 Dice</button>
                     </div>
                     <div class="flex flex-col gap-2">
                         <button id="share-btn" class="w-full bg-slate-100 text-slate-900 p-3 rounded-xl font-bold hover:bg-white transition flex items-center justify-center gap-2 shadow-lg text-xs">
@@ -138,10 +140,10 @@
             <button id="dock-send-msg" class="bg-slate-800 p-2 rounded-full text-xs px-3 hover:bg-purple-900 transition">Send</button>
         </div>
         <div class="flex gap-2">
-            <button onclick="sendEmoji(\'🌙\')" class="hover:scale-125 transition text-lg">🌙</button>
-            <button onclick="sendEmoji(\'☁️\')" class="hover:scale-125 transition text-lg">☁️</button>
-            <button onclick="sendEmoji(\'💧\')" class="hover:scale-125 transition text-lg">💧</button>
-            <button onclick="sendEmoji(\'🥀\')" class="hover:scale-125 transition text-lg">🥀</button>
+            <button onclick="sendEmoji('🌙')" class="hover:scale-125 transition text-lg">🌙</button>
+            <button onclick="sendEmoji('☁️')" class="hover:scale-125 transition text-lg">☁️</button>
+            <button onclick="sendEmoji('💧')" class="hover:scale-125 transition text-lg">💧</button>
+            <button onclick="sendEmoji('🥀')" class="hover:scale-125 transition text-lg">🥀</button>
         </div>
     </div>
 
@@ -227,7 +229,7 @@
                 document.getElementById('my-name-display').innerText = myName;
                 document.getElementById('my-id-display').innerText = "ID: " + id;
                 document.getElementById('my-pfp-display').src = myPfp;
-                if (myBanner) document.getElementById('banner-display').style.backgroundImage = `url('\${myBanner}')`;
+                if (myBanner) document.getElementById('banner-display').style.backgroundImage = `url('${myBanner}')`;
             });
 
             peer.on('call', (call) => { 
@@ -264,12 +266,25 @@
 
         function handleDataConnection(conn) {
             dataConn = conn;
+            
+            // Send profile data immediately upon connection
+            dataConn.send(encrypt(JSON.stringify({ 
+                type: 'profile', 
+                user: myName, 
+                pfp: myPfp, 
+                bio: myBio 
+            })));
+
             dataConn.on('data', (data) => {
                 const decrypted = JSON.parse(decrypt(data));
                 if (decrypted.type === 'chat') addChatMessage(decrypted.user, decrypted.msg);
                 if (decrypted.type === 'emoji') spawnEmoji(decrypted.emoji);
                 if (decrypted.type === 'cursor') moveCursor(decrypted.user, decrypted.x, decrypted.y);
                 if (decrypted.type === 'game') handleGame(decrypted.game, decrypted.val);
+                if (decrypted.type === 'profile') {
+                    // Store friend's profile for openProfile call
+                    window.friendProfile = decrypted;
+                }
             });
         }
 
@@ -288,7 +303,7 @@
         function addChatMessage(user, msg) {
             const div = document.createElement('div');
             div.className = "chat-msg flex flex-col";
-            div.innerHTML = `<span class="text-purple-400 font-bold text-[10px]\${user === 'You' ? 'text-right' : ''}">\${user}</span><span class="bg-slate-800 p-2 rounded-lg text-white">\${msg}\span>`;
+            div.innerHTML = `<span class="text-purple-400 font-bold text-[10px]${user === 'You' ? 'text-right' : ''}">${user}</span><span class="bg-slate-800 p-2 rounded-lg text-white">${msg}</span>`;
             const container = document.getElementById('chat-messages');
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
@@ -307,7 +322,7 @@
                 cursor = document.createElement('div');
                 cursor.id = 'cursor-' + user.replace(/\s/g, '');
                 cursor.className = "cursor";
-                cursor.innerHTML = `<div class="cursor-label">\${user}</div>`;
+                cursor.innerHTML = `<div class="cursor-label">${user}</div>`;
                 cursorLayer.appendChild(cursor);
             }
             cursor.style.left = (x * 100) + "%";
@@ -341,7 +356,7 @@
         }
 
         function handleGame(game, val) {
-            alert(`GAME: \${game.toUpperCase()} Result: \${val}!`);
+            alert(`GAME: ${game.toUpperCase()} Result: ${val}!`);
         }
 
         document.getElementById('dock-mute').onclick = () => {
@@ -368,8 +383,10 @@
                     video: { width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60 } }, 
                     audio: true 
                 });
-                if (currentCall) currentCall.addStream(screenStream);
-                else {
+                if (currentCall) {
+                    // Replace existing stream with screen share
+                    currentCall.addStream(screenStream);
+                } else {
                     const targetId = document.getElementById('peer-id').value.trim();
                     if (!targetId) return alert("Connect first!");
                     const call = peer.call(targetId, screenStream);
@@ -412,9 +429,17 @@
                 bioEl.innerText = myBio || "No bio provided.";
                 pfpEl.src = myPfp;
             } else {
-                nameEl.innerText = user;
-                bioEl.innerText = "A mysterious walker in the void.";
-                pfpEl.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + user;
+                // Use friend's profile if available, else fallback
+                const profile = window.friendProfile;
+                if (profile) {
+                    nameEl.innerText = profile.user;
+                    bioEl.innerText = profile.bio || "No bio provided.";
+                    pfpEl.src = profile.pfp;
+                } else {
+                    nameEl.innerText = user;
+                    bioEl.innerText = "A mysterious walker in the void.";
+                    pfpEl.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + user;
+                }
             }
             modal.style.display = 'block';
         }
