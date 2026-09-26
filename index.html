@@ -11,7 +11,7 @@
         :root { --neon: #a78bfa; --bg: #020617; }
         body { 
             background: var(--bg); color: #cbd5e1; min-height: 100vh; margin: 0; 
-            overflow-y: auto !important; font-family: 'Inter', sans-serif;
+            overflow: hidden; font-family: 'Inter', sans-serif;
             background-size: cover; background-position: center; transition: background 1s ease;
             -webkit-tap-highlight-color: transparent;
         }
@@ -48,7 +48,6 @@
             <div class="flex flex-col gap-2">
                 <label class="text-[10px] font-medium text-slate-500 uppercase ml-1">Identity</label>
                 <input id="user-name" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Who are you?">
-                <button id="start-btn" class="mt-4 bg-slate-800 text-slate-400 p-4 rounded-2xl font-medium transition-all active:scale-95 shadow-sm cursor-not-allowed" disabled>Enter Space</button>
             </div>
             <div class="flex flex-col gap-4 p-4 rounded-2xl bg-slate-900/30 border border-slate-800">
                 <label class="text-[10px] font-medium text-slate-500 uppercase text-center">Profile Setup</label>
@@ -68,41 +67,30 @@
                 <label class="text-[10px] font-medium text-slate-500 uppercase ml-1">Access Code</label>
                 <input id="room-pass" type="text" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Type the song name...">
             </div>
+            <button id="start-btn" class="bg-slate-800 text-slate-400 p-4 rounded-2xl font-medium transition-all active:scale-95 shadow-sm cursor-not-allowed" disabled>Enter</button>
         </div>
     </div>
 
     <!-- MEETING ROOM -->
     <div id="meeting-room" class="hidden w-full max-w-7xl flex flex-col gap-6 h-screen max-h-[95vh]">
         <div class="flex justify-between items-center glass p-4 rounded-2xl neon-border gpu">
-            <div class="flex items-center gap-6">
-                <!-- My Profile -->
-                <div class="flex items-center gap-3 cursor-pointer" onclick="openProfile('me')">
-                    <img id="my-pfp-display" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 object-cover opacity-80">
-                    <div class="flex flex-col">
-                        <p id="my-name-display" class="font-medium text-sm text-slate-300"></p>
-                        <p id="my-id-display" class="text-[10px] text-slate-500 font-mono"></p>
-                    </div>
-                </div>
-                <!-- Peer Profile (Dynamic) -->
-                <div id="peer-display" class="hidden flex items-center gap-3 cursor-pointer" onclick="openProfile('peer')">
-                    <img id="peer-pfp-display" class="w-10 h-10 rounded-full bg-slate-800 border border-purple-500 object-cover opacity-80">
-                    <div class="flex flex-col">
-                        <p id="peer-name-display" class="font-medium text-sm text-purple-300"></p>
-                        <p class="text-[10px] text-slate-500 font-mono uppercase tracking-tighter">Connected</p>
-                    </div>
+            <div class="flex items-center gap-3 cursor-pointer" onclick="openProfile('me')">
+                <img id="my-pfp-display" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 object-cover opacity-80">
+                <div class="flex flex-col">
+                    <p id="my-name-display" class="font-medium text-sm text-slate-300"></p>
+                    <p id="my-id-display" class="text-[10px] text-slate-500 font-mono"></p>
                 </div>
             </div>
             <div class="flex gap-2">
-                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend's ID...">
+                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend\'s ID...">
                 <button id="connect-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-medium text-sm transition">Call Friend</button>
-                <button id="leave-btn" class="bg-red-900/40 hover:bg-red-600 text-red-200 px-4 py-2 rounded-xl font-medium text-sm transition">Leave Space</button>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
             <div id="video-container" class="lg:col-span-3 relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl gpu">
                 <div id="banner-display" class="absolute top-0 left-0 w-full h-16 bg-cover bg-center opacity-50 border-b border-slate-800 z-20"></div>
-                <video id="remote-video" autoplay playsinline class="w-full h-full object-contain relative z-10"></video>
+                <video id="remote-video" autoplay class="w-full h-full object-contain relative z-10" playsinline></video>
                 <div id="cursor-layer"></div>
                 <div id="emoji-layer"></div>
                 <div id="status" class="absolute top-6 right-6 px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-900/80 text-slate-500 border border-slate-800 z-20">Disconnected</div>
@@ -119,10 +107,10 @@
                 <div class="glass p-4 rounded-3xl border border-slate-800 flex flex-col gap-3">
                     <h3 class="text-xs font-medium text-slate-500 uppercase mb-1">Controls</h3>
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="sendSfx('airhorn')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">📢 Airhorn</button>
-                        <button onclick="sendSfx('bruh')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🤨 Bruh</button>
-                        <button onclick="startMiniGame('coinflip')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🪙 Flip</button>
-                        <button onclick="startMiniGame('dice')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🎲 Dice</button>
+                        <button onclick="sendSfx(\'airhorn\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">📢 Airhorn</button>
+                        <button onclick="sendSfx(\'bruh\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🤨 Bruh</button>
+                        <button onclick="startMiniGame(\'coinflip\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🪙 Flip</button>
+                        <button onclick="startMiniGame(\'dice\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🎲 Dice</button>
                     </div>
                     <div class="flex flex-col gap-2">
                         <button id="share-btn" class="w-full bg-slate-100 text-slate-900 p-3 rounded-xl font-bold hover:bg-white transition flex items-center justify-center gap-2 shadow-lg text-xs">
@@ -150,10 +138,10 @@
             <button id="dock-send-msg" class="bg-slate-800 p-2 rounded-full text-xs px-3 hover:bg-purple-900 transition">Send</button>
         </div>
         <div class="flex gap-2">
-            <button onclick="sendEmoji('🌙')" class="hover:scale-125 transition text-lg">🌙</button>
-            <button onclick="sendEmoji('☁️')" class="hover:scale-125 transition text-lg">☁️</button>
-            <button onclick="sendEmoji('💧')" class="hover:scale-125 transition text-lg">💧</button>
-            <button onclick="sendEmoji('🥀')" class="hover:scale-125 transition text-lg">🥀</button>
+            <button onclick="sendEmoji(\'🌙\')" class="hover:scale-125 transition text-lg">🌙</button>
+            <button onclick="sendEmoji(\'☁️\')" class="hover:scale-125 transition text-lg">☁️</button>
+            <button onclick="sendEmoji(\'💧\')" class="hover:scale-125 transition text-lg">💧</button>
+            <button onclick="sendEmoji(\'🥀\')" class="hover:scale-125 transition text-lg">🥀</button>
         </div>
     </div>
 
@@ -166,11 +154,12 @@
 
     <script>
         let peer = null, currentCall = null, dataConn = null;
-        let myData = { name: "", pfp: "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", banner: "", bio: "" };
-        let peerData = { name: "Friend", pfp: "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", banner: "", bio: "" };
+        let myName = "", myPfp = "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", myBanner = "", myBio = "";
         let secretKey = "ultra-secret-key";
-        let localStream = null, screenStream = null;
-        let isMuted = false, isCamOff = false;
+        let localStream = null;
+        let screenStream = null;
+        let isMuted = false;
+        let isCamOff = false;
 
         const joinScreen = document.getElementById('join-screen');
         const meetingRoom = document.getElementById('meeting-room');
@@ -187,7 +176,7 @@
             const reader = new FileReader();
             reader.onload = (ev) => {
                 document.getElementById('pfp-preview').src = ev.target.result;
-                myData.pfp = ev.target.result;
+                myPfp = ev.target.result;
             };
             reader.readAsDataURL(file);
         };
@@ -197,7 +186,7 @@
             if (!file) return;
             const reader = new FileReader();
             reader.onload = (ev) => {
-                myData.banner = ev.target.result;
+                myBanner = ev.target.result;
             };
             reader.readAsDataURL(file);
         };
@@ -218,9 +207,9 @@
         };
 
         startBtn.onclick = async () => {
-            myData.name = document.getElementById('user-name').value;
-            myData.bio = document.getElementById('user-desc').value;
-            if (!myData.name) return alert("Enter your name!");
+            myName = document.getElementById('user-name').value;
+            myBio = document.getElementById('user-desc').value;
+            if (!myName) return alert("Enter your name!");
 
             try { 
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }); 
@@ -235,10 +224,10 @@
             peer.on('open', (id) => {
                 joinScreen.classList.add('hidden');
                 meetingRoom.classList.remove('hidden');
-                document.getElementById('my-name-display').innerText = myData.name;
+                document.getElementById('my-name-display').innerText = myName;
                 document.getElementById('my-id-display').innerText = "ID: " + id;
-                document.getElementById('my-pfp-display').src = myData.pfp;
-                if (myData.banner) document.getElementById('banner-display').style.backgroundImage = `url('${myData.banner}')`;
+                document.getElementById('my-pfp-display').src = myPfp;
+                if (myBanner) document.getElementById('banner-display').style.backgroundImage = `url('\${myBanner}')`;
             });
 
             peer.on('call', (call) => { 
@@ -264,9 +253,6 @@
             statusLabel.classList.replace('text-slate-400', 'text-green-400');
             call.on('stream', (remoteStream) => { 
                 remoteVideo.srcObject = remoteStream; 
-                remoteVideo.play().catch(e => {
-                    document.addEventListener('click', () => remoteVideo.play(), { once: true });
-                });
             });
         }
 
@@ -278,27 +264,12 @@
 
         function handleDataConnection(conn) {
             dataConn = conn;
-            conn.on('open', () => {
-                conn.send(encrypt(JSON.stringify({ type: 'metadata', data: myData })));
-            });
-            conn.on('data', (data) => {
-                try {
-                    const decrypted = JSON.parse(decrypt(data));
-                    if (decrypted.type === 'metadata') {
-                        peerData = decrypted.data;
-                        document.getElementById('peer-display').classList.remove('hidden');
-                        document.getElementById('peer-name-display').innerText = peerData.name;
-                        document.getElementById('peer-pfp-display').src = peerData.pfp;
-                    } else if (decrypted.type === 'chat') {
-                        addChatMessage(decrypted.user, decrypted.msg);
-                    } else if (decrypted.type === 'emoji') {
-                        spawnEmoji(decrypted.emoji);
-                    } else if (decrypted.type === 'cursor') {
-                        moveCursor(decrypted.user, decrypted.x, decrypted.y);
-                    } else if (decrypted.type === 'game') {
-                        handleGame(decrypted.game, decrypted.val);
-                    }
-                } catch(e) { console.log("Data decrypt failed"); }
+            dataConn.on('data', (data) => {
+                const decrypted = JSON.parse(decrypt(data));
+                if (decrypted.type === 'chat') addChatMessage(decrypted.user, decrypted.msg);
+                if (decrypted.type === 'emoji') spawnEmoji(decrypted.emoji);
+                if (decrypted.type === 'cursor') moveCursor(decrypted.user, decrypted.x, decrypted.y);
+                if (decrypted.type === 'game') handleGame(decrypted.game, decrypted.val);
             });
         }
 
@@ -306,7 +277,7 @@
             const input = document.getElementById(inputId);
             const msg = input.value;
             if (!msg || !dataConn) return;
-            dataConn.send(encrypt(JSON.stringify({ type: 'chat', user: myData.name, msg: msg })));
+            dataConn.send(encrypt(JSON.stringify({ type: 'chat', user: myName, msg: msg })));
             addChatMessage("You", msg);
             input.value = "";
         }
@@ -317,7 +288,7 @@
         function addChatMessage(user, msg) {
             const div = document.createElement('div');
             div.className = "chat-msg flex flex-col";
-            div.innerHTML = `<span class="text-purple-400 font-bold text-[10px]${user === 'You' ? 'text-right' : ''}">${user}</span><span class="bg-slate-800 p-2 rounded-lg text-white">${msg}</span>`;
+            div.innerHTML = `<span class="text-purple-400 font-bold text-[10px]\${user === 'You' ? 'text-right' : ''}">\${user}</span><span class="bg-slate-800 p-2 rounded-lg text-white">\${msg}\span>`;
             const container = document.getElementById('chat-messages');
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
@@ -327,7 +298,7 @@
             if (!dataConn) return;
             const x = e.clientX / window.innerWidth;
             const y = e.clientY / window.innerHeight;
-            dataConn.send(encrypt(JSON.stringify({ type: 'cursor', user: myData.name, x, y })));
+            dataConn.send(encrypt(JSON.stringify({ type: 'cursor', user: myName, x, y })));
         };
 
         function moveCursor(user, x, y) {
@@ -336,7 +307,7 @@
                 cursor = document.createElement('div');
                 cursor.id = 'cursor-' + user.replace(/\s/g, '');
                 cursor.className = "cursor";
-                cursor.innerHTML = `<div class="cursor-label">${user}</div>`;
+                cursor.innerHTML = `<div class="cursor-label">\${user}</div>`;
                 cursorLayer.appendChild(cursor);
             }
             cursor.style.left = (x * 100) + "%";
@@ -370,7 +341,7 @@
         }
 
         function handleGame(game, val) {
-            alert(`GAME: ${game.toUpperCase()} Result: ${val}!`);
+            alert(`GAME: \${game.toUpperCase()} Result: \${val}!`);
         }
 
         document.getElementById('dock-mute').onclick = () => {
@@ -394,40 +365,28 @@
         document.getElementById('share-btn').onclick = async () => {
             try {
                 screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-                    video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }, 
+                    video: { width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60 } }, 
                     audio: true 
                 });
-                
-                if (currentCall && currentCall.peerConnection) {
-                    const videoSender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                    if (videoSender) {
-                        videoSender.replaceTrack(screenStream.getVideoTracks()[0]);
-                    }
-                } else {
+                if (currentCall) currentCall.addStream(screenStream);
+                else {
                     const targetId = document.getElementById('peer-id').value.trim();
                     if (!targetId) return alert("Connect first!");
                     const call = peer.call(targetId, screenStream);
                     handleCall(call);
                 }
-                
                 document.getElementById('share-btn').classList.add('hidden');
                 document.getElementById('stop-share-btn').classList.remove('hidden');
                 document.getElementById('status').innerText = "Streaming 4K";
                 document.getElementById('status').classList.replace('text-slate-500', 'text-red-400');
-            } catch (err) { 
-                console.error(err);
-                alert("Screen share failed: " + err.message);
-            }
+            } catch (err) { console.error(err); }
         };
 
         document.getElementById('stop-share-btn').onclick = () => {
             if (screenStream) {
                 screenStream.getTracks().forEach(track => track.stop());
-                if (currentCall && currentCall.peerConnection && localStream) {
-                    const videoSender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                    if (videoSender) {
-                        videoSender.replaceTrack(localStream.getVideoTracks()[0]);
-                    }
+                if (currentCall && localStream) {
+                    currentCall.addStream(localStream);
                 }
                 document.getElementById('stop-share-btn').classList.add('hidden');
                 document.getElementById('share-btn').classList.remove('hidden');
@@ -442,17 +401,6 @@
             document.getElementById('fullscreen-btn').innerText = videoContainer.classList.contains('fullscreen-active') ? "🔳 Exit Fullscreen" : "🔳 Watch Fullscreen";
         };
 
-        document.getElementById('leave-btn').onclick = () => {
-            if (confirm("Are you sure you want to leave the space?")) {
-                if (dataConn) dataConn.close();
-                if (currentCall) currentCall.close();
-                if (peer) peer.destroy();
-                if (localStream) localStream.getTracks().forEach(t => t.stop());
-                if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-                window.location.reload();
-            }
-        };
-
         function openProfile(user) {
             const modal = document.getElementById('profile-modal');
             const nameEl = document.getElementById('modal-name');
@@ -460,13 +408,13 @@
             const pfpEl = document.getElementById('modal-pfp');
 
             if (user === 'me') {
-                nameEl.innerText = myData.name;
-                bioEl.innerText = myData.bio || "No bio provided.";
-                pfpEl.src = myData.pfp;
+                nameEl.innerText = myName;
+                bioEl.innerText = myBio || "No bio provided.";
+                pfpEl.src = myPfp;
             } else {
-                nameEl.innerText = peerData.name;
-                bioEl.innerText = peerData.bio || "A mysterious walker in the void.";
-                pfpEl.src = peerData.pfp;
+                nameEl.innerText = user;
+                bioEl.innerText = "A mysterious walker in the void.";
+                pfpEl.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + user;
             }
             modal.style.display = 'block';
         }
