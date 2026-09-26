@@ -86,7 +86,10 @@
             <div class="flex items-center gap-3 cursor-pointer" onclick="openProfile('friend')">
                 <div class="flex flex-col text-right">
                     <p id="friend-name-display" class="font-medium text-sm text-slate-300">No Friend</p>
-                    <p id="friend-id-display" class="text-[10px] text-slate-500 font-mono"></p>
+                    <div class="flex flex-col items-end">
+                        <p id="friend-bio-display" class="text-[9px] text-slate-500 italic leading-tight max-w-[120px] truncate"></p>
+                        <p id="friend-id-display" class="text-[10px] text-slate-500 font-mono"></p>
+                    </div>
                 </div>
                 <img id="friend-pfp-display" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Default" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 object-cover opacity-80">
             </div>
@@ -285,24 +288,42 @@
         function handleDataConnection(conn) {
             dataConn = conn;
             
-            dataConn.send(encrypt(JSON.stringify({ 
-                type: 'profile', 
-                user: myName, 
-                pfp: myPfp, 
-                bio: myBio 
-            })));
+            // Robust profile syncing
+            const syncProfile = () => {
+                if (dataConn && dataConn.open) {
+                    dataConn.send(encrypt(JSON.stringify({ 
+                        type: 'profile', 
+                        user: myName, 
+                        pfp: myPfp, 
+                        bio: myBio 
+                    })));
+                }
+            };
+
+            // Send immediately
+            syncProfile();
+
+            // Also send when connection is explicitly open
+            conn.on('open', () => {
+                syncProfile();
+            });
 
             dataConn.on('data', (data) => {
-                const decrypted = JSON.parse(decrypt(data));
-                if (decrypted.type === 'chat') addChatMessage(decrypted.user, decrypted.msg);
-                if (decrypted.type === 'emoji') spawnEmoji(decrypted.emoji);
-                if (decrypted.type === 'cursor') moveCursor(decrypted.user, decrypted.x, decrypted.y);
-                if (decrypted.type === 'game') handleGame(decrypted.game, decrypted.val);
-                if (decrypted.type === 'profile') {
-                    window.friendProfile = decrypted;
-                    document.getElementById('friend-name-display').innerText = decrypted.user;
-                    document.getElementById('friend-pfp-display').src = decrypted.pfp;
-                    document.getElementById('friend-id-display').innerText = "Connected";
+                try {
+                    const decrypted = JSON.parse(decrypt(data));
+                    if (decrypted.type === 'chat') addChatMessage(decrypted.user, decrypted.msg);
+                    if (decrypted.type === 'emoji') spawnEmoji(decrypted.emoji);
+                    if (decrypted.type === 'cursor') moveCursor(decrypted.user, decrypted.x, decrypted.y);
+                    if (decrypted.type === 'game') handleGame(decrypted.game, decrypted.val);
+                    if (decrypted.type === 'profile') {
+                        window.friendProfile = decrypted;
+                        document.getElementById('friend-name-display').innerText = decrypted.user;
+                        document.getElementById('friend-bio-display').innerText = decrypted.bio || "No bio provided.";
+                        document.getElementById('friend-pfp-display').src = decrypted.pfp;
+                        document.getElementById('friend-id-display').innerText = "Connected";
+                    }
+                } catch (e) {
+                    console.error("Data processing error:", e);
                 }
             });
         }
@@ -403,8 +424,6 @@
                     audio: true 
                 });
                 if (currentCall) {
-                    // We keep the original audio by adding the screen stream on top
-                    // PeerJS will mix the streams if correctly handled by the browser
                     currentCall.addStream(screenStream);
                 } else {
                     const targetId = document.getElementById('peer-id').value.trim();
@@ -423,7 +442,6 @@
             if (screenStream) {
                 screenStream.getTracks().forEach(track => track.stop());
                 if (currentCall && localStream) {
-                    // Re-add original stream to ensure camera returns
                     currentCall.addStream(localStream);
                 }
                 document.getElementById('stop-share-btn').classList.add('hidden');
