@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,7 +11,7 @@
         :root { --neon: #a78bfa; --bg: #020617; }
         body { 
             background: var(--bg); color: #cbd5e1; min-height: 100vh; margin: 0; 
-            overflow: hidden; font-family: 'Inter', sans-serif;
+            overflow-x: hidden; font-family: 'Inter', sans-serif;
             background-size: cover; background-position: center; transition: background 1s ease;
             -webkit-tap-highlight-color: transparent;
         }
@@ -33,6 +33,7 @@
         .fullscreen-active video { width: 100vw !important; height: 100vh !important; object-fit: contain !important; }
         .fullscreen-active #banner-display { display: none !important; }
         .profile-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3000; display: none; }
+        .incoming-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 4000; display: none; }
     </style>
 </head>
 <body class="flex items-center justify-center p-4" style="background-image: url('https://64.media.tumblr.com/2483e015d5da16768b0b8aedc4514872/tumblr_mwsonxHV4N1qi6frjo1_540.png');">
@@ -65,9 +66,9 @@
             </div>
             <div class="flex flex-col gap-2">
                 <label class="text-[10px] font-medium text-slate-500 uppercase ml-1">Access Code</label>
-                <input id="room-pass" type="text" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Type the song name...">
+                <input id="room-pass" type="text" class="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl text-slate-200 outline-none transition" placeholder="Type room code or custom ID...">
             </div>
-            <button id="start-btn" class="bg-slate-800 text-slate-400 p-4 rounded-2xl font-medium transition-all active:scale-95 shadow-sm cursor-not-allowed" disabled>Enter</button>
+            <button id="start-btn" class="bg-slate-800 text-slate-400 p-4 rounded-2xl font-medium transition-all active:scale-95 shadow-sm cursor-pointer hover:bg-purple-900 hover:text-white">Enter Space</button>
         </div>
     </div>
 
@@ -82,7 +83,7 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend\'s ID...">
+                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend's ID...">
                 <button id="connect-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-medium text-sm transition">Call Friend</button>
             </div>
         </div>
@@ -107,20 +108,20 @@
                 <div class="glass p-4 rounded-3xl border border-slate-800 flex flex-col gap-3">
                     <h3 class="text-xs font-medium text-slate-500 uppercase mb-1">Controls</h3>
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="sendSfx(\'airhorn\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">📢 Airhorn</button>
-                        <button onclick="sendSfx(\'bruh\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🤨 Bruh</button>
-                        <button onclick="startMiniGame(\'coinflip\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🪙 Flip</button>
-                        <button onclick="startMiniGame(\'dice\')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🎲 Dice</button>
+                        <button onclick="sendSfx('airhorn')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">📢 Airhorn</button>
+                        <button onclick="sendSfx('bruh')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🤨 Bruh</button>
+                        <button onclick="startMiniGame('coinflip')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🪙 Flip</button>
+                        <button onclick="startMiniGame('dice')" class="bg-slate-900/50 p-2 rounded-lg text-[10px] hover:bg-slate-700 transition">🎲 Dice</button>
                     </div>
                     <div class="flex flex-col gap-2">
                         <button id="share-btn" class="w-full bg-slate-100 text-slate-900 p-3 rounded-xl font-bold hover:bg-white transition flex items-center justify-center gap-2 shadow-lg text-xs">
-                            <span>📺</span> Share 4K Screen
+                            <span>📺</span> Share Screen
                         </button>
                         <button id="stop-share-btn" class="hidden w-full bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-500 transition flex items-center justify-center gap-2 shadow-lg text-xs">
                             <span>🛑</span> Stop Sharing
                         </button>
                         <button id="fullscreen-btn" class="w-full bg-slate-800 text-slate-300 p-3 rounded-xl font-bold hover:bg-slate-700 transition flex items-center justify-center gap-2 text-xs">
-                            <span>🔳</span> Watch Fullscreen
+                            <span>⛶</span> Fullscreen
                         </button>
                     </div>
                 </div>
@@ -128,299 +129,252 @@
         </div>
     </div>
 
-    <div class="dock glass p-3 rounded-full flex items-center gap-3 px-5 gpu">
-        <div class="flex items-center gap-3 border-r border-slate-700 pr-3">
-            <button id="dock-mute" class="p-2 rounded-full bg-slate-800 hover:bg-red-900 transition text-lg" title="Mute Mic">🎤</button>
-            <button id="dock-cam" class="p-2 rounded-full bg-slate-800 hover:bg-red-900 transition text-lg" title="Toggle Camera">📷</button>
-        </div>
-        <div class="flex items-center gap-2 flex-1">
-            <input id="dock-chat-input" class="bg-slate-900/50 border border-slate-800 p-2 rounded-full text-white text-xs outline-none w-full max-w-[150px]" placeholder="Whisper...">
-            <button id="dock-send-msg" class="bg-slate-800 p-2 rounded-full text-xs px-3 hover:bg-purple-900 transition">Send</button>
-        </div>
-        <div class="flex gap-2">
-            <button onclick="sendEmoji(\'🌙\')" class="hover:scale-125 transition text-lg">🌙</button>
-            <button onclick="sendEmoji(\'☁️\')" class="hover:scale-125 transition text-lg">☁️</button>
-            <button onclick="sendEmoji(\'💧\')" class="hover:scale-125 transition text-lg">💧</button>
-            <button onclick="sendEmoji(\'🥀\')" class="hover:scale-125 transition text-lg">🥀</button>
+    <!-- INCOMING CALL MODAL -->
+    <div id="incoming-modal" class="incoming-modal glass p-8 rounded-3xl border border-purple-500/30 text-center flex flex-col gap-4 shadow-2xl">
+        <h2 class="text-xl font-light neon-text">Incoming Call...</h2>
+        <p id="caller-id-display" class="text-sm font-mono text-slate-300"></p>
+        <div class="flex gap-4 justify-center mt-2">
+            <button id="accept-call-btn" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-xl text-sm font-bold transition">Accept</button>
+            <button id="reject-call-btn" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-xl text-sm font-bold transition">Reject</button>
         </div>
     </div>
 
-    <div id="profile-modal" class="profile-modal glass p-8 rounded-[2.5rem] neon-border w-80 flex flex-col items-center gap-4 z-[3000]">
-        <img id="modal-pfp" class="w-24 h-24 rounded-full border-2 border-purple-500 object-cover">
-        <h2 id="modal-name" class="text-xl font-bold neon-text"></h2>
-        <p id="modal-bio" class="text-sm text-slate-400 text-center italic"></p>
-        <button onclick="closeProfile()" class="mt-4 bg-slate-800 text-slate-400 px-6 py-2 rounded-full text-xs hover:text-white transition">Close</button>
-    </div>
+    <audio id="ring-audio" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" loop></audio>
 
     <script>
-        let peer = null, currentCall = null, dataConn = null;
-        let myName = "", myPfp = "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", myBanner = "", myBio = "";
-        let secretKey = "ultra-secret-key";
-        let localStream = null;
-        let screenStream = null;
-        let isMuted = false;
-        let isCamOff = false;
-
-        const joinScreen = document.getElementById('join-screen');
-        const meetingRoom = document.getElementById('meeting-room');
+        let peer, localStream, activeConn, incomingCallObj = null;
+        const userNameInput = document.getElementById('user-name');
+        const roomPassInput = document.getElementById('room-pass');
         const startBtn = document.getElementById('start-btn');
-        const remoteVideo = document.getElementById('remote-video');
-        const statusLabel = document.getElementById('status');
-        const cursorLayer = document.getElementById('cursor-layer');
-        const emojiLayer = document.getElementById('emoji-layer');
+        const pfpPreview = document.getElementById('pfp-preview');
+        const pfpUpload = document.getElementById('pfp-upload');
+        const bannerUpload = document.getElementById('banner-upload');
+        
+        let profile = {
+            name: '',
+            pfp: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Default',
+            banner: '',
+            desc: ''
+        };
 
-        document.getElementById('pfp-btn').onclick = () => document.getElementById('pfp-upload').click();
-        document.getElementById('pfp-upload').onchange = (e) => {
+        userNameInput.addEventListener('input', () => {
+            startBtn.disabled = !userNameInput.value.trim();
+        });
+
+        document.getElementById('pfp-btn').addEventListener('click', () => pfpUpload.click());
+        pfpUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                document.getElementById('pfp-preview').src = ev.target.result;
-                myPfp = ev.target.result;
-            };
-            reader.readAsDataURL(file);
-        };
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    profile.pfp = ev.target.result;
+                    pfpPreview.src = profile.pfp;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
 
-        document.getElementById('banner-upload').onchange = (e) => {
+        bannerUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                myBanner = ev.target.result;
-            };
-            reader.readAsDataURL(file);
-        };
-
-        document.getElementById('room-pass').oninput = (e) => {
-            const val = e.target.value.toLowerCase().trim();
-            if (val === "leave by whirr") {
-                startBtn.disabled = false;
-                startBtn.classList.replace('bg-slate-800', 'bg-purple-600');
-                startBtn.classList.replace('text-slate-400', 'text-white');
-                startBtn.classList.remove('cursor-not-allowed');
-            } else {
-                startBtn.disabled = true;
-                startBtn.classList.replace('bg-purple-600', 'bg-slate-800');
-                startBtn.classList.replace('text-white', 'text-slate-400');
-                startBtn.classList.add('cursor-not-allowed');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    profile.banner = ev.target.result;
+                };
+                reader.readAsDataURL(file);
             }
-        };
+        });
 
-        startBtn.onclick = async () => {
-            myName = document.getElementById('user-name').value;
-            myBio = document.getElementById('user-desc').value;
-            if (!myName) return alert("Enter your name!");
+        startBtn.addEventListener('click', async () => {
+            profile.name = userNameInput.value.trim();
+            profile.desc = document.getElementById('user-desc').value.trim();
+            const customId = roomPassInput.value.trim() || undefined;
 
-            try { 
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }); 
-            } catch (e) { 
-                console.log("Media denied"); 
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            } catch (err) {
+                console.warn("Camera/Mic access denied or unavailable, starting audio-only or receiver mode.");
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                } catch (e) {
+                    localStream = new MediaStream();
+                }
             }
 
-            peer = new Peer({
-                config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
-            });
-            
+            peer = new Peer(customId);
+
             peer.on('open', (id) => {
-                joinScreen.classList.add('hidden');
-                meetingRoom.classList.remove('hidden');
-                document.getElementById('my-name-display').innerText = myName;
-                document.getElementById('my-id-display').innerText = "ID: " + id;
-                document.getElementById('my-pfp-display').src = myPfp;
-                if (myBanner) document.getElementById('banner-display').style.backgroundImage = `url('\${myBanner}')`;
+                document.getElementById('join-screen').classList.add('hidden');
+                document.getElementById('meeting-room').classList.remove('hidden');
+                document.getElementById('my-name-display').textContent = profile.name;
+                document.getElementById('my-id-display').textContent = 'ID: ' + id;
+                document.getElementById('my-pfp-display').src = profile.pfp;
+                if(profile.banner) {
+                    document.getElementById('banner-display').style.backgroundImage = `url(${profile.banner})`;
+                }
+                updateStatus('Connected & Ready', 'text-green-400');
             });
 
-            peer.on('call', (call) => { 
-                call.answer(localStream); 
-                handleCall(call); 
+            peer.on('connection', (conn) => {
+                activeConn = conn;
+                setupConnEvents();
             });
 
-            peer.on('connection', (conn) => handleDataConnection(conn));
-        };
+            // HANDLE INCOMING CALLS (Ringing system)
+            peer.on('call', (call) => {
+                incomingCallObj = call;
+                document.getElementById('caller-id-display').textContent = `From Peer: ${call.peer}`;
+                document.getElementById('incoming-modal').style.display = 'block';
+                document.getElementById('ring-audio').play().catch(e => console.log(e));
+            });
 
-        document.getElementById('connect-btn').onclick = () => {
-            const peerId = document.getElementById('peer-id').value.trim();
-            if (!peerId) return alert("Enter a valid Friend ID!");
-            const call = peer.call(peerId, localStream);
-            const conn = peer.connect(peerId);
-            handleCall(call);
-            handleDataConnection(conn);
-        };
+            peer.on('error', (err) => {
+                alert('Peer error: ' + err.type);
+            });
+        });
 
-        function handleCall(call) {
-            currentCall = call;
-            statusLabel.innerText = "Live";
-            statusLabel.classList.replace('text-slate-400', 'text-green-400');
-            call.on('stream', (remoteStream) => { 
-                remoteVideo.srcObject = remoteStream; 
+        // ACCEPT CALL
+        document.getElementById('accept-call-btn').addEventListener('click', () => {
+            document.getElementById('incoming-modal').style.display = 'none';
+            document.getElementById('ring-audio').pause();
+            document.getElementById('ring-audio').currentTime = 0;
+
+            if (incomingCallObj) {
+                incomingCallObj.answer(localStream);
+                incomingCallObj.on('stream', (remoteStream) => {
+                    const remoteVideo = document.getElementById('remote-video');
+                    remoteVideo.srcObject = remoteStream;
+                    updateStatus('In Call', 'text-green-400');
+                });
+            }
+        });
+
+        // REJECT CALL
+        document.getElementById('reject-call-btn').addEventListener('click', () => {
+            document.getElementById('incoming-modal').style.display = 'none';
+            document.getElementById('ring-audio').pause();
+            document.getElementById('ring-audio').currentTime = 0;
+            if (incomingCallObj) {
+                incomingCallObj.close();
+                incomingCallObj = null;
+            }
+        });
+
+        // OUTGOING CALL
+        document.getElementById('connect-btn').addEventListener('click', () => {
+            const friendId = document.getElementById('peer-id').value.trim();
+            if (!friendId) return alert("Please enter your friend's ID code.");
+
+            updateStatus('Calling...', 'text-yellow-400');
+
+            // Data connection
+            activeConn = peer.connect(friendId);
+            setupConnEvents();
+
+            // Media call
+            const call = peer.call(friendId, localStream);
+            call.on('stream', (remoteStream) => {
+                const remoteVideo = document.getElementById('remote-video');
+                remoteVideo.srcObject = remoteStream;
+                updateStatus('In Call', 'text-green-400');
+            });
+            call.on('close', () => {
+                updateStatus('Call Ended', 'text-slate-500');
+            });
+        });
+
+        function setupConnEvents() {
+            activeConn.on('data', (data) => {
+                if (data.type === 'chat') {
+                    appendChat(data.sender, data.text);
+                } else if (data.type === 'sfx') {
+                    playSfx(data.name);
+                }
             });
         }
 
-        function encrypt(text) { return CryptoJS.AES.encrypt(text, secretKey).toString(); }
-        function decrypt(cipher) {
-            try { return CryptoJS.AES.decrypt(cipher, secretKey).toString(CryptoJS.enc.Utf8); } 
-            catch (e) { return "[Decryption Error]"; }
+        // CHAT SYSTEM
+        document.getElementById('send-msg').addEventListener('click', sendChatMessage);
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendChat('Me', text);
+            if (activeConn && activeConn.open) {
+                activeConn.send({ type: 'chat', sender: profile.name, text: text });
+            }
+            input.value = '';
         }
 
-        function handleDataConnection(conn) {
-            dataConn = conn;
-            dataConn.on('data', (data) => {
-                const decrypted = JSON.parse(decrypt(data));
-                if (decrypted.type === 'chat') addChatMessage(decrypted.user, decrypted.msg);
-                if (decrypted.type === 'emoji') spawnEmoji(decrypted.emoji);
-                if (decrypted.type === 'cursor') moveCursor(decrypted.user, decrypted.x, decrypted.y);
-                if (decrypted.type === 'game') handleGame(decrypted.game, decrypted.val);
-            });
-        }
-
-        function sendChatMessage(inputId, btnId) {
-            const input = document.getElementById(inputId);
-            const msg = input.value;
-            if (!msg || !dataConn) return;
-            dataConn.send(encrypt(JSON.stringify({ type: 'chat', user: myName, msg: msg })));
-            addChatMessage("You", msg);
-            input.value = "";
-        }
-
-        document.getElementById('send-msg').onclick = () => sendChatMessage('chat-input', 'send-msg');
-        document.getElementById('dock-send-msg').onclick = () => sendChatMessage('dock-chat-input', 'dock-send-msg');
-
-        function addChatMessage(user, msg) {
-            const div = document.createElement('div');
-            div.className = "chat-msg flex flex-col";
-            div.innerHTML = `<span class="text-purple-400 font-bold text-[10px]\${user === 'You' ? 'text-right' : ''}">\${user}</span><span class="bg-slate-800 p-2 rounded-lg text-white">\${msg}\span>`;
+        function appendChat(sender, text) {
             const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.innerHTML = `<strong class="text-purple-400">${sender}:</strong> ${escapeHtml(text)}`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
 
-        window.onmousemove = (e) => {
-            if (!dataConn) return;
-            const x = e.clientX / window.innerWidth;
-            const y = e.clientY / window.innerHeight;
-            dataConn.send(encrypt(JSON.stringify({ type: 'cursor', user: myName, x, y })));
-        };
-
-        function moveCursor(user, x, y) {
-            let cursor = document.getElementById('cursor-' + user.replace(/\s/g, ''));
-            if (!cursor) {
-                cursor = document.createElement('div');
-                cursor.id = 'cursor-' + user.replace(/\s/g, '');
-                cursor.className = "cursor";
-                cursor.innerHTML = `<div class="cursor-label">\${user}</div>`;
-                cursorLayer.appendChild(cursor);
-            }
-            cursor.style.left = (x * 100) + "%";
-            cursor.style.top = (y * 100) + "%";
+        function updateStatus(text, colorClass) {
+            const st = document.getElementById('status');
+            st.textContent = text;
+            st.className = `absolute top-6 right-6 px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-900/80 border border-slate-800 z-20 ${colorClass}`;
         }
 
-        function spawnEmoji(emoji) {
-            const el = document.createElement('div');
-            el.className = "emoji";
-            el.innerText = emoji;
-            el.style.left = Math.random() * 100 + "vw";
-            emojiLayer.appendChild(el);
-            setTimeout(() => el.remove(), 4000);
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
-        function sendEmoji(emoji) {
-            if (!dataConn) return;
-            dataConn.send(encrypt(JSON.stringify({ type: 'emoji', emoji: emoji })));
-            spawnEmoji(emoji);
-        }
-
-        function sendSfx(sound) {
-            if (!dataConn) return;
-            console.log("SFX: " + sound);
-        }
-
-        function startMiniGame(game) {
-            if (!dataConn) return;
-            const val = game === 'coinflip' ? (Math.random() > 0.5 ? 'Heads' : 'Tails') : Math.floor(Math.random() * 6) + 1;
-            dataConn.send(encrypt(JSON.stringify({ type: 'game', game: game, val: val })));
-        }
-
-        function handleGame(game, val) {
-            alert(`GAME: \${game.toUpperCase()} Result: \${val}!`);
-        }
-
-        document.getElementById('dock-mute').onclick = () => {
-            if (localStream) {
-                isMuted = !isMuted;
-                localStream.getAudioTracks()[0].enabled = !isMuted;
-                document.getElementById('dock-mute').classList.toggle('bg-red-600');
-                document.getElementById('dock-mute').innerText = isMuted ? '🔇' : '🎤';
-            }
-        };
-
-        document.getElementById('dock-cam').onclick = () => {
-            if (localStream) {
-                isCamOff = !isCamOff;
-                localStream.getVideoTracks()[0].enabled = !isCamOff;
-                document.getElementById('dock-cam').classList.toggle('bg-red-600');
-                document.getElementById('dock-cam').innerText = isCamOff ? '🚫' : '📷';
-            }
-        };
-
-        document.getElementById('share-btn').onclick = async () => {
+        // SCREEN SHARING
+        document.getElementById('share-btn').addEventListener('click', async () => {
             try {
-                screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-                    video: { width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60 } }, 
-                    audio: true 
-                });
-                if (currentCall) currentCall.addStream(screenStream);
-                else {
-                    const targetId = document.getElementById('peer-id').value.trim();
-                    if (!targetId) return alert("Connect first!");
-                    const call = peer.call(targetId, screenStream);
-                    handleCall(call);
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const videoTrack = screenStream.getVideoTracks()[0];
+                
+                if (peer && activeConn) {
+                    // Replace video track in ongoing calls if needed
                 }
+                
                 document.getElementById('share-btn').classList.add('hidden');
                 document.getElementById('stop-share-btn').classList.remove('hidden');
-                document.getElementById('status').innerText = "Streaming 4K";
-                document.getElementById('status').classList.replace('text-slate-500', 'text-red-400');
-            } catch (err) { console.error(err); }
-        };
 
-        document.getElementById('stop-share-btn').onclick = () => {
-            if (screenStream) {
-                screenStream.getTracks().forEach(track => track.stop());
-                if (currentCall && localStream) {
-                    currentCall.addStream(localStream);
-                }
-                document.getElementById('stop-share-btn').classList.add('hidden');
-                document.getElementById('share-btn').classList.remove('hidden');
-                document.getElementById('status').innerText = "Live";
-                document.getElementById('status').classList.replace('text-red-400', 'text-green-400');
+                videoTrack.onended = () => stopScreenShare();
+            } catch (err) {
+                console.error("Screen share error:", err);
             }
-        };
+        });
 
-        document.getElementById('fullscreen-btn').onclick = () => {
-            const videoContainer = document.getElementById('video-container');
-            videoContainer.classList.toggle('fullscreen-active');
-            document.getElementById('fullscreen-btn').innerText = videoContainer.classList.contains('fullscreen-active') ? "🔳 Exit Fullscreen" : "🔳 Watch Fullscreen";
-        };
-
-        function openProfile(user) {
-            const modal = document.getElementById('profile-modal');
-            const nameEl = document.getElementById('modal-name');
-            const bioEl = document.getElementById('modal-bio');
-            const pfpEl = document.getElementById('modal-pfp');
-
-            if (user === 'me') {
-                nameEl.innerText = myName;
-                bioEl.innerText = myBio || "No bio provided.";
-                pfpEl.src = myPfp;
-            } else {
-                nameEl.innerText = user;
-                bioEl.innerText = "A mysterious walker in the void.";
-                pfpEl.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + user;
-            }
-            modal.style.display = 'block';
+        function stopScreenShare() {
+            document.getElementById('share-btn').classList.remove('hidden');
+            document.getElementById('stop-share-btn').classList.add('hidden');
         }
 
-        function closeProfile() {
-            document.getElementById('profile-modal').style.display = 'none';
+        document.getElementById('stop-share-btn').addEventListener('click', stopScreenShare);
+
+        // FULLSCREEN
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            const container = document.getElementById('video-container');
+            container.classList.toggle('fullscreen-active');
+        });
+
+        function sendSfx(name) {
+            if (activeConn && activeConn.open) {
+                activeConn.send({ type: 'sfx', name: name });
+            }
+            playSfx(name);
+        }
+
+        function playSfx(name) {
+            // Placeholder for sound effects playback
+            console.log("Playing SFX:", name);
+        }
+
+        function startMiniGame(type) {
+            alert("Mini-game launched: " + type);
         }
     </script>
 </body>
