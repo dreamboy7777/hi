@@ -11,7 +11,7 @@
         :root { --neon: #a78bfa; --bg: #020617; }
         body { 
             background: var(--bg); color: #cbd5e1; min-height: 100vh; margin: 0; 
-            overflow: hidden; font-family: 'Inter', sans-serif;
+            overflow-y: auto; font-family: 'Inter', sans-serif;
             background-size: cover; background-position: center; transition: background 1s ease;
             -webkit-tap-highlight-color: transparent;
         }
@@ -83,8 +83,15 @@
                     <p id="my-id-display" class="text-[10px] text-slate-500 font-mono"></p>
                 </div>
             </div>
+            <div class="flex items-center gap-3 cursor-pointer" onclick="openProfile('friend')">
+                <div class="flex flex-col text-right">
+                    <p id="friend-name-display" class="font-medium text-sm text-slate-300">No Friend</p>
+                    <p id="friend-id-display" class="text-[10px] text-slate-500 font-mono"></p>
+                </div>
+                <img id="friend-pfp-display" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Default" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 object-cover opacity-80">
+            </div>
             <div class="flex gap-2">
-                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend's ID...">
+                <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend ID (5 chars)...">
                 <button id="connect-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-medium text-sm transition">Call Friend</button>
             </div>
         </div>
@@ -219,7 +226,9 @@
                 console.log("Media denied"); 
             }
 
-            peer = new Peer({
+            const randomId = Math.random().toString(36).substring(2, 7).toLowerCase();
+
+            peer = new Peer(randomId, {
                 config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
             });
             
@@ -238,11 +247,20 @@
             });
 
             peer.on('connection', (conn) => handleDataConnection(conn));
+            
+            peer.on('error', (err) => {
+                console.error("Peer Error:", err);
+                if (err.type === 'unavailable-id') {
+                    alert("ID was taken, try clicking Enter again!");
+                    location.reload();
+                }
+            });
         };
 
         document.getElementById('connect-btn').onclick = () => {
-            const peerId = document.getElementById('peer-id').value.trim();
+            const peerId = document.getElementById('peer-id').value.trim().toLowerCase();
             if (!peerId) return alert("Enter a valid Friend ID!");
+            
             const call = peer.call(peerId, localStream);
             const conn = peer.connect(peerId);
             handleCall(call);
@@ -267,7 +285,6 @@
         function handleDataConnection(conn) {
             dataConn = conn;
             
-            // Send profile data immediately upon connection
             dataConn.send(encrypt(JSON.stringify({ 
                 type: 'profile', 
                 user: myName, 
@@ -282,8 +299,10 @@
                 if (decrypted.type === 'cursor') moveCursor(decrypted.user, decrypted.x, decrypted.y);
                 if (decrypted.type === 'game') handleGame(decrypted.game, decrypted.val);
                 if (decrypted.type === 'profile') {
-                    // Store friend's profile for openProfile call
                     window.friendProfile = decrypted;
+                    document.getElementById('friend-name-display').innerText = decrypted.user;
+                    document.getElementById('friend-pfp-display').src = decrypted.pfp;
+                    document.getElementById('friend-id-display').innerText = "Connected";
                 }
             });
         }
@@ -384,7 +403,8 @@
                     audio: true 
                 });
                 if (currentCall) {
-                    // Replace existing stream with screen share
+                    // We keep the original audio by adding the screen stream on top
+                    // PeerJS will mix the streams if correctly handled by the browser
                     currentCall.addStream(screenStream);
                 } else {
                     const targetId = document.getElementById('peer-id').value.trim();
@@ -403,6 +423,7 @@
             if (screenStream) {
                 screenStream.getTracks().forEach(track => track.stop());
                 if (currentCall && localStream) {
+                    // Re-add original stream to ensure camera returns
                     currentCall.addStream(localStream);
                 }
                 document.getElementById('stop-share-btn').classList.add('hidden');
@@ -429,16 +450,15 @@
                 bioEl.innerText = myBio || "No bio provided.";
                 pfpEl.src = myPfp;
             } else {
-                // Use friend's profile if available, else fallback
                 const profile = window.friendProfile;
                 if (profile) {
                     nameEl.innerText = profile.user;
                     bioEl.innerText = profile.bio || "No bio provided.";
                     pfpEl.src = profile.pfp;
                 } else {
-                    nameEl.innerText = user;
-                    bioEl.innerText = "A mysterious walker in the void.";
-                    pfpEl.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + user;
+                    nameEl.innerText = "Unknown";
+                    bioEl.innerText = "Not connected.";
+                    pfpEl.src = "https://api.dicebear.com/7.x/avataaars/svg?seed=Default";
                 }
             }
             modal.style.display = 'block';
