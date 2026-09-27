@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        :root { --neon: #a78bfa; --bg: #020617; }
+        :root { --neon: #a78bfa; --bg: #020617; --accent: #c4b5fd; }
         body { 
             background: var(--bg); color: #cbd5e1; min-height: 100vh; margin: 0; 
             overflow: hidden; font-family: 'Inter', sans-serif;
@@ -17,20 +17,24 @@
         }
         .overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: linear-gradient(to bottom, rgba(2, 6, 23, 0.4), rgba(2, 6, 23, 0.9));
+            background: radial-gradient(circle at center, rgba(167, 139, 250, 0.1) 0%, rgba(2, 6, 23, 0.9) 100%);
             z-index: -1; pointer-events: none;
         }
         .gpu { transform: translateZ(0); backface-visibility: hidden; will-change: transform, opacity; }
         .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.05); }
         .neon-border { border: 1px solid rgba(167, 139, 250, 0.3); box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
-        .neon-text { text-shadow: 0 0 10px rgba(167, 139, 250, 0.5); color: #c4b5fd; }
+        .neon-text { text-shadow: 0 0 10px rgba(167, 139, 250, 0.5); color: var(--accent); }
         .cursor { position: absolute; width: 12px; height: 12px; border-radius: 50%; pointer-events: none; z-index: 1000; transition: all 0.1s linear; box-shadow: 0 0 10px currentColor; }
         .cursor-label { position: absolute; left: 15px; top: 0; font-size: 10px; white-space: nowrap; color: #fff; font-weight: bold; }
         .emoji { position: absolute; pointer-events: none; z-index: 100; animation: fall 4s linear forwards; font-size: 2rem; opacity: 0.8; }
         @keyframes fall { from { transform: translateY(-10vh) rotate(0deg); opacity: 0.8; } to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
-        .dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); transition: all 0.4s ease; opacity: 0.8; z-index: 1000; width: 90%; max-width: 600px; }
+        .dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); transition: all 0.4s ease; opacity: 0.8; z-index: 1000; width: 90%; max-width: 700px; }
+        
+        /* Fullscreen Logic */
         .fullscreen-active { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; background: black !important; border-radius: 0 !important; border: none !important; }
         .fullscreen-active video { width: 100vw !important; height: 100vh !important; object-fit: contain !important; }
+        #exit-fs-btn { position: absolute; top: 20px; right: 20px; z-index: 10001; display: none; }
+        
         .profile-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3000; display: none; width: 500px; max-width: 90vw; }
         .visualizer-bar { width: 3px; height: 10px; background: var(--neon); animation: bounce 0.5s ease-in-out infinite alternate; }
         @keyframes bounce { from { height: 5px; } to { height: 20px; } }
@@ -41,7 +45,6 @@
         .message-bubble { max-width: 80%; word-wrap: break-word; position: relative; }
         .reaction { position: absolute; bottom: -10px; right: 5px; background: rgba(0,0,0,0.5); border-radius: 10px; padding: 0 4px; font-size: 10px; }
         #incoming-call-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10000; background: rgba(2, 6, 23, 0.9); display: none; flex-direction: column; items-center; justify-center; backdrop-filter: blur(20px); }
-        #pip-camera { position: absolute; top: 20px; right: 20px; width: 200px; height: 120px; z-index: 50; border-radius: 1rem; border: 2px solid var(--neon); box-shadow: 0 0 15px rgba(167, 139, 250, 0.4); object-fit: cover; display: none; }
     </style>
 </head>
 <body class="flex items-center justify-center p-4" style="background-image: url('https://64.media.tumblr.com/2483e015d5da16768b0b8aedc4514872/tumblr_mwsonxHV4N1qi6frjo1_540.png');">
@@ -128,9 +131,9 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
                 <div id="video-container" class="lg:col-span-3 relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl gpu">
+                    <button id="exit-fs-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-red-500 transition">Exit Fullscreen</button>
                     <div id="banner-display" class="absolute top-0 left-0 w-full h-16 bg-cover bg-center opacity-50 border-b border-slate-800 z-20"></div>
                     <video id="remote-video" autoplay playsinline class="w-full h-full object-contain relative z-10"></video>
-                    <video id="pip-camera" autoplay playsinline></video>
                     <div id="cursor-layer"></div>
                     <div id="emoji-layer"></div>
                     <div id="status" class="absolute top-6 right-6 px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-900/80 text-slate-500 border border-slate-800 z-20">Disconnected</div>
@@ -185,6 +188,7 @@
     <div class="dock glass p-3 rounded-full flex items-center gap-3 px-5 gpu">
         <div class="flex items-center gap-3 border-r border-slate-700 pr-3">
             <button id="dock-mute" class="p-2 rounded-full bg-slate-800 hover:bg-red-900 transition text-lg" title="Mute Mic">🎤</button>
+            <button id="dock-deafen" class="p-2 rounded-full bg-slate-800 hover:bg-red-900 transition text-lg" title="Deafen">🎧</button>
             <button id="dock-cam" class="p-2 rounded-full bg-slate-800 hover:bg-red-900 transition text-lg" title="Toggle Camera">📷</button>
         </div>
         <div class="flex items-center gap-2 flex-1">
@@ -255,7 +259,7 @@
         let peerData = { name: "Friend", pfp: "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", banner: "", bio: "", song: "", cursorColor: "#a78bfa" };
         let secretKey = "ultra-secret-key";
         let localStream = null, screenStream = null;
-        let isMuted = false, isCamOff = false;
+        let isMuted = false, isDeafened = false, isCamOff = false;
         let callStartTime = null;
         let pendingCall = null;
 
@@ -275,11 +279,14 @@
         }
 
         window.onload = () => {
+            // RESET AUTH ON UPDATE
+            localStorage.removeItem('mykels_auth');
+            
             const isAuthorized = localStorage.getItem('mykels_auth') === 'true';
             if (loadProfile() && isAuthorized) {
                 bypassJoinScreen();
             }
-            notify("Welcome back to Mykels Space!", "info");
+            notify("SYSTEM UPDATE v4.1: All sessions reset. Welcome back!", "update");
         };
 
         function bypassJoinScreen() {
@@ -327,7 +334,11 @@
                 startBtn.classList.replace('bg-slate-800', 'bg-purple-600');
                 startBtn.classList.replace('text-slate-400', 'text-white');
                 startBtn.classList.remove('cursor-not-allowed');
-                setTimeout(() => startBtn.click(), 500);
+                
+                // AUTO-ENTER TRIGGER
+                setTimeout(() => {
+                    startBtn.click();
+                }, 500);
             } else {
                 const startBtn = document.getElementById('start-btn');
                 startBtn.disabled = true;
@@ -347,8 +358,10 @@
             });
             
             peer.on('open', (id) => {
+                const words = ["cool", "fast", "slow", "ready", "smart", "light", "bold", "fresh", "sharp", "clear"];
+                const randomID = words[Math.floor(Math.random()*words.length)] + "-" + Math.floor(1000 + Math.random() * 9000);
                 document.getElementById('my-name-display').innerText = myData.name;
-                document.getElementById('my-id-display').innerText = "ID: " + id;
+                document.getElementById('my-id-display').innerText = "ID: " + randomID + " (" + id + ")";
                 document.getElementById('my-pfp-display').src = myData.pfp;
                 if (myData.banner) document.getElementById('banner-display').style.backgroundImage = `url('${myData.banner}')`;
             });
@@ -446,7 +459,7 @@
             const duration = Math.round((endTime - callStartTime) / 1000);
             const logEntry = document.createElement('div');
             logEntry.className = "p-2 bg-slate-900/50 rounded border border-slate-800 mb-2";
-            logEntry.innerHTML = `<b>Call with ${peerData.name}</b><br>Duration: ${duration}s`;
+            logEntry.innerHTML = `<b class="text-purple-400">Call with ${peerData.name}</b><br>Duration: ${duration}s`;
             document.getElementById('call-logs').prepend(logEntry);
         }
 
@@ -479,6 +492,9 @@
                     } else if (decrypted.type === 'cursor') {
                         moveCursor(decrypted.user, decrypted.x, decrypted.y, decrypted.color);
                     } else if (decrypted.type === 'yt_sync') {
+                        loadYTVideo(decrypted.url, false);
+                    } else if (decrypted.type === 'yt_open') {
+                        document.getElementById('youtube-modal').classList.remove('hidden');
                         loadYTVideo(decrypted.url, false);
                     }
                 } catch(e) { console.log("Data decrypt failed"); }
@@ -622,6 +638,15 @@
             }
         };
 
+        document.getElementById('dock-deafen').onclick = () => {
+            if (localStream) {
+                isDeafened = !isDeafened;
+                localStream.getAudioTracks().forEach(t => t.enabled = !isDeafened);
+                document.getElementById('dock-deafen').classList.toggle('bg-red-600');
+                document.getElementById('dock-deafen').innerText = isDeafened ? '🚫' : '🎧';
+            }
+        };
+
         document.getElementById('dock-cam').onclick = () => {
             if (localStream) {
                 isCamOff = !isCamOff;
@@ -633,16 +658,13 @@
 
         document.getElementById('share-btn').onclick = async () => {
             try {
-                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { width: 1920, height: 1080 }, audio: true });
                 if (currentCall && currentCall.peerConnection) {
                     const videoSender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
                     if (videoSender) {
                         videoSender.replaceTrack(screenStream.getVideoTracks()[0]);
                     }
                 }
-                const pipCam = document.getElementById('pip-camera');
-                pipCam.srcObject = localStream;
-                pipCam.style.display = 'block';
                 document.getElementById('share-btn').classList.add('hidden');
                 document.getElementById('stop-share-btn').classList.remove('hidden');
                 document.getElementById('status').innerText = "Streaming 4K";
@@ -658,7 +680,6 @@
                         videoSender.replaceTrack(localStream.getVideoTracks()[0]);
                     }
                 }
-                document.getElementById('pip-camera').style.display = 'none';
                 document.getElementById('stop-share-btn').classList.add('hidden');
                 document.getElementById('share-btn').classList.remove('hidden');
                 document.getElementById('status').innerText = "Live";
@@ -668,7 +689,15 @@
         document.getElementById('fullscreen-btn').onclick = () => {
             const v = document.getElementById('video-container');
             v.classList.toggle('fullscreen-active');
+            document.getElementById('exit-fs-btn').style.display = v.classList.contains('fullscreen-active') ? 'block' : 'none';
             document.getElementById('fullscreen-btn').innerText = v.classList.contains('fullscreen-active') ? "🔳 Exit Fullscreen" : "🔳 Watch Fullscreen";
+        };
+
+        document.getElementById('exit-fs-btn').onclick = () => {
+            const v = document.getElementById('video-container');
+            v.classList.remove('fullscreen-active');
+            document.getElementById('exit-fs-btn').style.display = 'none';
+            document.getElementById('fullscreen-btn').innerText = "🔳 Watch Fullscreen";
         };
 
         document.getElementById('leave-btn').onclick = () => {
@@ -688,7 +717,12 @@
 
         function closeProfile() { document.getElementById('profile-modal').style.display = 'none'; }
 
-        document.getElementById('youtube-btn').onclick = () => document.getElementById('youtube-modal').classList.remove('hidden');
+        document.getElementById('youtube-btn').onclick = () => {
+            document.getElementById('youtube-modal').classList.remove('hidden');
+            if (dataConn) {
+                dataConn.send(encrypt(JSON.stringify({ type: 'yt_open' })));
+            }
+        };
         function closeYouTube() { document.getElementById('youtube-modal').classList.add('hidden'); }
         
         document.getElementById('yt-load-btn').onclick = () => {
