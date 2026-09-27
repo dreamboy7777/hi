@@ -41,6 +41,10 @@
         .message-bubble { max-width: 80%; word-wrap: break-word; position: relative; }
         .reaction { position: absolute; bottom: -10px; right: 5px; background: rgba(0,0,0,0.5); border-radius: 10px; padding: 0 4px; font-size: 10px; }
         #incoming-call-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10000; background: rgba(2, 6, 23, 0.9); display: none; flex-direction: column; items-center; justify-center; backdrop-filter: blur(20px); }
+        
+        /* DM Side Panel */
+        #dm-panel { position: fixed; right: -400px; top: 0; width: 400px; height: 100vh; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border-left: 1px solid rgba(167, 139, 250, 0.3); transition: right 0.3s ease; z-index: 2000; display: flex; flex-col; }
+        #dm-panel.open { right: 0; }
     </style>
 </head>
 <body class="flex items-center justify-center p-4" style="background-image: url('https://64.media.tumblr.com/2483e015d5da16768b0b8aedc4514872/tumblr_mwsonxHV4N1qi6frjo1_540.png');">
@@ -127,6 +131,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
                 <div id="video-container" class="lg:col-span-3 relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl gpu">
+                    <button id="exit-fs-btn" class="absolute top-5 right-5 z-[10001] bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-red-500 transition hidden">Exit Fullscreen</button>
                     <div id="banner-display" class="absolute top-0 left-0 w-full h-16 bg-cover bg-center opacity-50 border-b border-slate-800 z-20"></div>
                     <video id="remote-video" autoplay playsinline class="w-full h-full object-contain relative z-10"></video>
                     <div id="cursor-layer"></div>
@@ -177,6 +182,22 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- DM PANEL -->
+    <div id="dm-panel" class="glass flex flex-col p-6">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-3">
+                <img id="dm-pfp" class="w-10 h-10 rounded-full object-cover border border-purple-500">
+                <h3 id="dm-name" class="font-bold text-slate-200">Chat</h3>
+            </div>
+            <button id="close-dm" class="text-slate-500 hover:text-white transition">✕</button>
+        </div>
+        <div id="dm-messages" class="flex-1 overflow-y-auto space-y-3 mb-4 pr-2"></div>
+        <div class="flex gap-2">
+            <input id="dm-input" class="flex-1 bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-xs outline-none" placeholder="Type a message...">
+            <button id="dm-send" class="bg-purple-600 p-2 rounded-xl text-xs hover:bg-purple-500 transition">Send</button>
         </div>
     </div>
 
@@ -257,6 +278,7 @@
         let isMuted = false, isDeafened = false, isCamOff = false;
         let callStartTime = null;
         let pendingCall = null;
+        let activeDMUser = null;
 
         function saveProfile() { localStorage.setItem('mykels_profile', JSON.stringify(myData)); }
         function loadProfile() {
@@ -274,14 +296,14 @@
         }
 
         window.onload = () => {
-            // FORCE RESET AUTH FOR UPDATE
+            // RESET FOR UPDATE
             localStorage.removeItem('mykels_auth');
             
             const isAuthorized = localStorage.getItem('mykels_auth') === 'true';
             if (loadProfile() && isAuthorized) {
                 bypassJoinScreen();
             }
-            notify("SYSTEM UPDATE v5.0: All sessions reset. Welcome back!", "update");
+            notify("SYSTEM UPDATE v5.1: Welcome Back! All systems reset.", "update");
         };
 
         function bypassJoinScreen() {
@@ -352,7 +374,7 @@
                 const words = ["cool", "fast", "slow", "ready", "smart", "light", "bold", "fresh", "sharp", "clear"];
                 const randomID = words[Math.floor(Math.random()*words.length)] + "-" + Math.floor(1000 + Math.random() * 9000);
                 document.getElementById('my-name-display').innerText = myData.name;
-                document.getElementById('my-id-display').innerText = "ID: " + randomID + " (" + id + ")";
+                document.getElementById('my-id-display').innerText = "ID: " + randomID;
                 document.getElementById('my-pfp-display').src = myData.pfp;
                 if (myData.banner) document.getElementById('banner-display').style.backgroundImage = `url('${myData.banner}')`;
             });
@@ -449,7 +471,7 @@
             const endTime = new Date();
             const duration = Math.round((endTime - callStartTime) / 1000);
             const logEntry = document.createElement('div');
-            logEntry.className = "p-2 bg-slate-900/50 rounded border border-slate-800 mb-2";
+            logEntry,className = "p-2 bg-slate-900/50 rounded border border-slate-800 mb-2";
             logEntry.innerHTML = `<b class="text-purple-400">Call with ${peerData.name}</b><br>Duration: ${duration}s`;
             document.getElementById('call-logs').prepend(logEntry);
         }
@@ -497,8 +519,8 @@
             if ([...list.children].some(el => el.innerText.includes(user.name))) return;
             const div = document.createElement('div');
             div.className = "flex items-center gap-3 p-2 hover:bg-slate-800 rounded-xl cursor-pointer transition";
-            div.innerHTML = `<img src="${user.pfp}" class="w-8 h-8 rounded-full object-cover"><span class="text-xs">${user.name}</span>`;
-            div.onclick = () => openProfile('peer');
+            div.innerHTML = `<img src="${user.pfp}" class="w-8 h-8 rounded-full object-cover"><span class="text-xs">${user.name}</span><button onclick="openDM('${user.name}')" class="ml-auto text-[10px] bg-slate-700 p-1 rounded">DM</button>`;
+            div.onclick = (e) => { if(e.target.tagName !== 'BUTTON') openProfile('peer'); };
             list.appendChild(div);
         }
 
@@ -733,6 +755,34 @@
                 }
             }
         }
+
+        // DM PANEL LOGIC
+        function openDM(userName) {
+            activeDMUser = userName;
+            document.getElementById('dm-name').innerText = userName;
+            document.getElementById('dm-panel').classList.add('open');
+            document.getElementById('dm-messages').innerHTML = '';
+            notify(`Chat opened with ${userName}`, "info");
+        }
+
+        document.getElementById('close-dm').onclick = () => {
+            document.getElementById('dm-panel').classList.remove('open');
+            activeDMUser = null;
+        };
+
+        document.getElementById('dm-send').onclick = () => {
+            const input = document.getElementById('dm-input');
+            const msg = input.value;
+            if (!msg || !dataConn || !activeDMUser) return;
+            
+            dataConn.send(encrypt(JSON.stringify({ type: 'chat', user: myData.name, msg: msg, type_chat: 'text' })));
+            
+            const div = document.createElement('div');
+            div.className = "message-bubble flex flex-col items-end";
+            div.innerHTML = `<span class="bg-purple-600 p-2 rounded-lg text-white">${msg}</span>`;
+            document.getElementById('dm-messages').appendChild(div);
+            input.value = "";
+        };
     </script>
 </body>
 </html>
