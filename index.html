@@ -269,7 +269,6 @@
         <div id="yt-container" class="flex-1 flex items-center justify-center"></div>
     </div>
 
-
     <div id="dm-panel" class="glass fixed right-[-400px] top-0 w-[400px] h-full p-6 flex flex-col z-[4000] border-l border-purple-500/30 transition-all duration-300">
         <div class="flex justify-between items-center mb-6">
             <div class="flex items-center gap-3">
@@ -298,6 +297,24 @@
         let notificationCount = 0;
         let friendsList = JSON.parse(localStorage.getItem('mykels_friends') || '[]');
 
+        // --- SENTRY ARCHITECT MONITORING SYSTEM ---
+        const Sentry = {
+            logs: [],
+            reportError: function(error, context) {
+                const entry = { timestamp: new Date().toISOString(), error, context };
+                this.logs.push(entry);
+                console.error(`[SENTRY-ERROR] ${context}: ${error}`);
+                notify(`Sentry detected a ${context} issue. Healing...`, "error");
+            },
+            heartbeat: function() {
+                if (dataConn && dataConn.open) {
+                    dataConn.send(encrypt(JSON.stringify({ type: 'heartbeat', user: myData.name })));
+                }
+            }
+        };
+        setInterval(() => Sentry.heartbeat(), 10000); // Heartbeat every 10s
+        // ----------------------------------------------
+
         function saveProfile() { localStorage.setItem('mykels_profile', JSON.stringify(myData)); }
         function saveFriends() { localStorage.setItem('mykels_friends', JSON.stringify(friendsList)); }
         
@@ -321,7 +338,7 @@
             if (loadProfile() && isAuthorized) {
                 bypassJoinScreen();
             }
-            notify("SYSTEM RECOVERY v11.1: PURGING GHOST OVERLAYS. INSTANT-JOIN ONLY.", "update");
+            notify("SYSTEM RECOVERY v12.0: ALL GHOSTS PURGED. ABSOLUTE P2P ACTIVE.", "update");
         };
 
         function bypassJoinScreen() {
@@ -436,7 +453,7 @@
             });
 
             peer.on('call', (call) => { 
-                // ABSOLUTE PURGE: NO MODALS, NO OVERLAYS, JUST ANSWER
+                // ABSOLUTE INSTANT ANSWER: No modals, no ringing, no waiting.
                 call.answer(localStream);
                 handleCall(call);
             });
@@ -473,9 +490,6 @@
             document.getElementById('status').innerText = "Live";
             document.getElementById('status').classList.replace('text-slate-400', 'text-green-400');
             
-            // REMOVED: call-overlay.classList.remove('hidden')
-            // The "End Call" overlay is completely gone from the logic.
-
             call.on('stream', (remoteStream) => { 
                 document.getElementById('remote-video').srcObject = remoteStream; 
                 document.getElementById('remote-video').play();
