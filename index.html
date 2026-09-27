@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        :root { --neon: #a78bfa; --bg: #020617; --accent: #c4b5fd; }
+        :root { --neon: #a78bfa; --bg: #020617; --accent: #c4b5fd; --discord-dark: #1e1f22; }
         body { 
             background: var(--bg); color: #cbd5e1; min-height: 100vh; margin: 0; 
             overflow: hidden; font-family: 'Inter', sans-serif;
@@ -24,33 +24,62 @@
         .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.05); }
         .neon-border { border: 1px solid rgba(167, 139, 250, 0.3); box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); }
         .neon-text { text-shadow: 0 0 10px rgba(167, 139, 250, 0.5); color: var(--accent); }
+        
         .cursor { position: absolute; width: 12px; height: 12px; border-radius: 50%; pointer-events: none; z-index: 1000; transition: all 0.1s linear; box-shadow: 0 0 10px currentColor; }
         .cursor-label { position: absolute; left: 15px; top: 0; font-size: 10px; white-space: nowrap; color: #fff; font-weight: bold; }
+        
         .emoji { position: absolute; pointer-events: none; z-index: 100; animation: fall 4s linear forwards; font-size: 2rem; opacity: 0.8; }
         @keyframes fall { from { transform: translateY(-10vh) rotate(0deg); opacity: 0.8; } to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
+        
         .dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); transition: all 0.4s ease; opacity: 0.8; z-index: 1000; width: 90%; max-width: 700px; }
         .fullscreen-active { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; background: black !important; border-radius: 0 !important; border: none !important; }
         .fullscreen-active video { width: 100vw !important; height: 100vh !important; object-fit: contain !important; }
+        
         .profile-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3000; display: none; width: 500px; max-width: 90vw; }
         .visualizer-bar { width: 3px; height: 10px; background: var(--neon); animation: bounce 0.5s ease-in-out infinite alternate; }
         @keyframes bounce { from { height: 5px; } to { height: 20px; } }
+        
         .sidebar { height: 100vh; transition: all 0.3s ease; }
         .game-frame { width: 100%; height: 100%; border: none; }
         .notification { animation: slideIn 0.3s ease-out forwards; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
         .message-bubble { max-width: 80%; word-wrap: break-word; position: relative; }
         .reaction { position: absolute; bottom: -10px; right: 5px; background: rgba(0,0,0,0.5); border-radius: 10px; padding: 0 4px; font-size: 10px; }
-        #incoming-call-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10000; background: rgba(2, 6, 23, 0.9); display: none; flex-direction: column; items-center; justify-center; backdrop-filter: blur(20px); }
         
-        /* DM Side Panel */
-        #dm-panel { position: fixed; right: -400px; top: 0; width: 400px; height: 100vh; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border-left: 1px solid rgba(167, 139, 250, 0.3); transition: right 0.3s ease; z-index: 2000; display: flex; flex-col; }
+        #dm-panel { 
+            position: fixed; right: -400px; top: 0; width: 400px; height: 100vh; 
+            background: var(--discord-dark); backdrop-filter: blur(20px); 
+            border-left: 1px solid rgba(167, 139, 250, 0.3); transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 2000; display: flex; flex-direction: column; 
+        }
         #dm-panel.open { right: 0; }
+
+        #notif-bell-container { position: fixed; top: 20px; right: 20px; z-index: 5000; cursor: pointer; }
+        #notif-bell { font-size: 24px; transition: transform 0.2s; }
+        #notif-bell.ring { animation: bellRing 0.5s infinite; }
+        @keyframes bellRing { 0% { transform: rotate(0); } 25% { transform: rotate(15deg); } 50% { transform: rotate(-15deg); } 100% { transform: rotate(0); } }
+        #notif-dropdown { 
+            position: absolute; top: 40px; right: 0; width: 300px; 
+            background: var(--discord-dark); border: 1px solid rgba(167, 139, 250, 0.3); 
+            border-radius: 1rem; display: none; flex-direction: column; 
+            max-height: 400px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4" style="background-image: url('https://64.media.tumblr.com/2483e015d5da16768b0b8aedc4514872/tumblr_mwsonxHV4N1qi6frjo1_540.png');">
     <div class="overlay"></div>
 
-    <div id="notification-center" class="fixed top-5 right-5 z-[5000] flex flex-col gap-3 w-80"></div>
+    <div id="notif-bell-container" onclick="toggleNotifs()">
+        <div id="notif-bell">🔔</div>
+        <div id="notif-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center hidden">0</div>
+        <div id="notif-dropdown" class="glass p-4 space-y-2">
+            <div class="text-xs font-bold text-slate-500 uppercase mb-2">Notifications</div>
+            <div id="notif-list" class="flex flex-col gap-2"></div>
+        </div>
+    </div>
+
+    <div id="notification-center" class="fixed top-5 right-20 z-[5000] flex flex-col gap-3 w-80"></div>
 
     <div id="join-screen" class="gpu glass p-10 rounded-[2.5rem] neon-border w-full max-w-md flex flex-col gap-8 z-10">
         <div class="text-center">
@@ -124,7 +153,7 @@
                 </div>
                 <div class="flex gap-2">
                     <input id="peer-id" class="bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-sm outline-none" placeholder="Friend's ID...">
-                    <button id="connect-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-medium text-sm transition">Call Friend</button>
+                    <button id="connect-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-medium text-sm transition">Connect Now</button>
                     <button id="leave-btn" class="bg-red-900/40 hover:bg-red-600 text-red-200 px-4 py-2 rounded-xl font-medium text-sm transition">Leave Space</button>
                 </div>
             </div>
@@ -138,7 +167,7 @@
                     <div id="emoji-layer"></div>
                     <div id="status" class="absolute top-6 right-6 px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-900/80 text-slate-500 border border-slate-800 z-20">Disconnected</div>
                     <div id="call-overlay" class="hidden absolute inset-0 flex items-center justify-center bg-black/60 z-30">
-                        <button id="end-call-btn" class="bg-red-600 text-white px-8 py-4 rounded-full font-bold hover:bg-red-500 transition-all shadow-lg animate-bounce">🛑 END CALL</button>
+                        <button id="end-call-btn" class="bg-red-600 text-white px-8 py-4 rounded-full font-bold hover:bg-red-500 transition-all shadow-lg animate-bounce">🛑 END SESSION</button>
                     </div>
                 </div>
                 <div class="flex flex-col gap-4 h-full overflow-hidden">
@@ -182,22 +211,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- DM PANEL -->
-    <div id="dm-panel" class="glass flex flex-col p-6">
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center gap-3">
-                <img id="dm-pfp" class="w-10 h-10 rounded-full object-cover border border-purple-500">
-                <h3 id="dm-name" class="font-bold text-slate-200">Chat</h3>
-            </div>
-            <button id="close-dm" class="text-slate-500 hover:text-white transition">✕</button>
-        </div>
-        <div id="dm-messages" class="flex-1 overflow-y-auto space-y-3 mb-4 pr-2"></div>
-        <div class="flex gap-2">
-            <input id="dm-input" class="flex-1 bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-xs outline-none" placeholder="Type a message...">
-            <button id="dm-send" class="bg-purple-600 p-2 rounded-xl text-xs hover:bg-purple-500 transition">Send</button>
         </div>
     </div>
 
@@ -269,6 +282,21 @@
         </div>
     </div>
 
+    <div id="dm-panel" class="glass fixed right-[-400px] top-0 w-[400px] h-full p-6 flex flex-col z-[4000] border-l border-purple-500/30 transition-all duration-300">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-3">
+                <img id="dm-pfp" class="w-10 h-10 rounded-full object-cover border border-purple-500">
+                <h3 id="dm-name" class="font-bold text-slate-200">Chat</h3>
+            </div>
+            <button id="close-dm" class="text-slate-500 hover:text-white transition">✕</button>
+        </div>
+        <div id="dm-messages" class="flex-1 overflow-y-auto space-y-3 mb-4 pr-2"></div>
+        <div class="flex gap-2">
+            <input id="dm-input" class="flex-1 bg-slate-900/50 border border-slate-800 p-2 rounded-xl text-slate-300 text-xs outline-none" placeholder="Type a message...">
+            <button id="dm-send" class="bg-purple-600 p-2 rounded-xl text-xs hover:bg-purple-500 transition">Send</button>
+        </div>
+    </div>
+
     <script>
         let peer = null, currentCall = null, dataConn = null;
         let myData = { name: "", pfp: "https://api.dicebear.com/7.x/avataaars/svg?seed=Default", banner: "", bio: "", song: "", cursorColor: "#a78bfa" };
@@ -279,8 +307,12 @@
         let callStartTime = null;
         let pendingCall = null;
         let activeDMUser = null;
+        let notificationCount = 0;
+        let friendsList = JSON.parse(localStorage.getItem('mykels_friends') || '[]');
 
         function saveProfile() { localStorage.setItem('mykels_profile', JSON.stringify(myData)); }
+        function saveFriends() { localStorage.setItem('mykels_friends', JSON.stringify(friendsList)); }
+        
         function loadProfile() {
             const saved = localStorage.getItem('mykels_profile');
             if (saved) {
@@ -296,14 +328,12 @@
         }
 
         window.onload = () => {
-            // RESET FOR UPDATE
             localStorage.removeItem('mykels_auth');
-            
             const isAuthorized = localStorage.getItem('mykels_auth') === 'true';
             if (loadProfile() && isAuthorized) {
                 bypassJoinScreen();
             }
-            notify("SYSTEM UPDATE v5.1: Welcome Back! All systems reset.", "update");
+            notify("SYSTEM RECOVERY v11.0: ALL MODALS PURGED. INSTANT-JOIN ACTIVE.", "update");
         };
 
         function bypassJoinScreen() {
@@ -319,6 +349,43 @@
             div.innerHTML = `<div class="font-bold mb-1 uppercase">${type}</div><div>${text}</div>`;
             center.appendChild(div);
             setTimeout(() => div.remove(), 5000);
+        }
+
+        function pushNotification(text, data = null) {
+            notificationCount++;
+            const badge = document.getElementById('notif-badge');
+            badge.innerText = notificationCount;
+            badge.classList.remove('hidden');
+            document.getElementById('notif-bell').classList.add('ring');
+
+            const list = document.getElementById('notif-list');
+            const item = document.createElement('div');
+            item.className = "p-2 bg-slate-800 rounded-lg text-[10px] cursor-pointer hover:bg-slate-700 transition flex justify-between items-center";
+            item.innerHTML = `<span>${text}</span> <span class="text-purple-400 font-bold">View</span>`;
+            item.onclick = () => {
+                if (data && data.type === 'friend_req') {
+                    acceptFriendRequest(data.user, data.peerId);
+                }
+                item.remove();
+                updateBadge();
+            };
+            list.prepend(item);
+        }
+
+        function updateBadge() {
+            notificationCount--;
+            const badge = document.getElementById('notif-badge');
+            if (notificationCount <= 0) {
+                badge.classList.add('hidden');
+                document.getElementById('notif-bell').classList.remove('ring');
+            } else {
+                badge.innerText = notificationCount;
+            }
+        }
+
+        function toggleNotifs() {
+            const dropdown = document.getElementById('notif-dropdown');
+            dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
         }
 
         document.getElementById('pfp-btn').onclick = () => document.getElementById('pfp-upload').click();
@@ -377,11 +444,13 @@
                 document.getElementById('my-id-display').innerText = "ID: " + randomID;
                 document.getElementById('my-pfp-display').src = myData.pfp;
                 if (myData.banner) document.getElementById('banner-display').style.backgroundImage = `url('${myData.banner}')`;
+                renderFriendsList();
             });
 
             peer.on('call', (call) => { 
-                pendingCall = call;
-                handleIncomingCall(call);
+                // ABSOLUTE INSTANT ANSWER: No modals, no ringing, no waiting.
+                call.answer(localStream);
+                handleCall(call);
             });
 
             peer.on('connection', (conn) => handleDataConnection(conn));
@@ -399,44 +468,11 @@
             initPeer();
         };
 
-        function handleIncomingCall(call) {
-            document.getElementById('incoming-name').innerText = "Incoming Call...";
-            document.getElementById('incoming-pfp').src = "https://api.dicebear.com/7.x/avataaars/svg?seed=Caller";
-            document.getElementById('incoming-call-modal').style.display = 'flex';
-            playRingtone();
-        }
-
-        function playRingtone() {
-            const audio = new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8f6f98c.mp3');
-            audio.loop = true;
-            audio.id = "ringtone";
-            audio.play();
-        }
-
-        document.getElementById('accept-call-btn').onclick = () => {
-            if (pendingCall) {
-                const ringtone = document.getElementById('ringtone');
-                if (ringtone) ringtone.pause();
-                document.getElementById('incoming-call-modal').style.display = 'none';
-                pendingCall.answer(localStream);
-                handleCall(pendingCall);
-                pendingCall = null;
-            }
-        };
-
-        document.getElementById('reject-call-btn').onclick = () => {
-            if (pendingCall) {
-                const ringtone = document.getElementById('ringtone');
-                if (ringtone) ringtone.pause();
-                pendingCall.close();
-                document.getElementById('incoming-call-modal').style.display = 'none';
-                pendingCall = null;
-            }
-        };
-
-        document.getElementById('connect-btn').onclick = () => {
+        document.getElementById('connect-btn').onclick = async () => {
             const peerId = document.getElementById('peer-id').value.trim();
             if (!peerId) return alert("Enter a valid Friend ID!");
+            
+            notify("Connecting Instantly...", "info");
             const call = peer.call(peerId, localStream);
             const conn = peer.connect(peerId);
             handleCall(call);
@@ -448,11 +484,19 @@
             callStartTime = new Date();
             document.getElementById('status').innerText = "Live";
             document.getElementById('status').classList.replace('text-slate-400', 'text-green-400');
-            document.getElementById('call-overlay').classList.remove('hidden');
+            
+            // REMOVED: call-overlay.classList.remove('hidden')
+            // The "End Call" overlay is now DISABLED by default.
 
             call.on('stream', (remoteStream) => { 
                 document.getElementById('remote-video').srcObject = remoteStream; 
                 document.getElementById('remote-video').play();
+            });
+
+            call.on('close', () => {
+                document.getElementById('status').innerText = "Disconnected";
+                document.getElementById('status').classList.replace('text-green-400', 'text-slate-500');
+                logCall();
             });
         }
 
@@ -460,7 +504,6 @@
             if (currentCall) {
                 currentCall.close();
                 currentCall = null;
-                document.getElementById('call-overlay').classList.add('hidden');
                 document.getElementById('status').innerText = "Disconnected";
                 document.getElementById('status').classList.replace('text-green-400', 'text-slate-500');
                 logCall();
@@ -471,7 +514,7 @@
             const endTime = new Date();
             const duration = Math.round((endTime - callStartTime) / 1000);
             const logEntry = document.createElement('div');
-            logEntry,className = "p-2 bg-slate-900/50 rounded border border-slate-800 mb-2";
+            logEntry.className = "p-2 bg-slate-900/50 rounded border border-slate-800 mb-2";
             logEntry.innerHTML = `<b class="text-purple-400">Call with ${peerData.name}</b><br>Duration: ${duration}s`;
             document.getElementById('call-logs').prepend(logEntry);
         }
@@ -497,9 +540,13 @@
                         document.getElementById('peer-pfp-display').src = peerData.pfp;
                         addFriend(peerData);
                     } else if (decrypted.type === 'friend_req') {
+                        pushNotification(`Friend Request from ${decrypted.user}!`, { type: 'friend_req', user: decrypted.user, peerId: decrypted.peerId });
                         notify(`Friend Request from ${decrypted.user}!`, "request");
                     } else if (decrypted.type === 'chat') {
                         addChatMessage(decrypted.user, decrypted.msg, decrypted.type_chat);
+                        if (activeDMUser === decrypted.user) {
+                            addChatMessage(decrypted.user, decrypted.msg, decrypted.type_chat, 'dm');
+                        }
                     } else if (decrypted.type === 'emoji') {
                         spawnEmoji(decrypted.emoji);
                     } else if (decrypted.type === 'cursor') {
@@ -515,13 +562,31 @@
         }
 
         function addFriend(user) {
+            if (friendsList.some(f => f.name === user.name)) return;
+            friendsList.push(user);
+            saveFriends();
+            renderFriendsList();
+        }
+
+        function renderFriendsList() {
             const list = document.getElementById('friends-list');
-            if ([...list.children].some(el => el.innerText.includes(user.name))) return;
-            const div = document.createElement('div');
-            div.className = "flex items-center gap-3 p-2 hover:bg-slate-800 rounded-xl cursor-pointer transition";
-            div.innerHTML = `<img src="${user.pfp}" class="w-8 h-8 rounded-full object-cover"><span class="text-xs">${user.name}</span><button onclick="openDM('${user.name}')" class="ml-auto text-[10px] bg-slate-700 p-1 rounded">DM</button>`;
-            div.onclick = (e) => { if(e.target.tagName !== 'BUTTON') openProfile('peer'); };
-            list.appendChild(div);
+            list.innerHTML = '';
+            friendsList.forEach(user => {
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-3 p-2 hover:bg-slate-800 rounded-xl cursor-pointer transition";
+                div.innerHTML = `<img src="${user.pfp}" class="w-8 h-8 rounded-full object-cover"><span class="text-xs">${user.name}</span><span class="ml-auto text-[8px] text-green-500 font-bold">ONLINE</span><button onclick="openDM('${user.name}')" class="ml-2 text-[10px] bg-slate-700 p-1 rounded">DM</button>`;
+                div.onclick = (e) => { if(e.target.tagName !== 'BUTTON') openProfile('peer'); };
+                list.appendChild(div);
+            });
+        }
+
+        async function acceptFriendRequest(userName, peerId) {
+            const conn = peer.connect(peerId);
+            handleDataConnection(conn);
+            conn.on('open', () => {
+                conn.send(encrypt(JSON.stringify({ type: 'friend_req_accepted', user: myData.name })));
+                notify(`Accepted ${userName}!`, "info");
+            });
         }
 
         document.getElementById('add-friend-btn').onclick = () => {
@@ -530,7 +595,7 @@
                 const conn = peer.connect(id);
                 handleDataConnection(conn);
                 conn.on('open', () => {
-                    conn.send(encrypt(JSON.stringify({ type: 'friend_req', user: myData.name })));
+                    conn.send(encrypt(JSON.stringify({ type: 'friend_req', user: myData.name, peerId: peer.id })));
                     notify("Friend request sent!", "info");
                 });
             }
@@ -565,7 +630,7 @@
             reader.readAsDataURL(file);
         }
 
-        function addChatMessage(user, msg, type = 'text') {
+        function addChatMessage(user, msg, type = 'text', target = 'main') {
             const div = document.createElement('div');
             div.className = `message-bubble flex flex-col ${user === 'You' ? 'items-end' : 'items-start'}`;
             let content = '';
@@ -574,7 +639,8 @@
             else if (type === 'video') content = `<video src="${msg}" controls class="max-w-xs rounded-lg border border-slate-700"></video>`;
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             div.innerHTML = `<span class="text-purple-400 font-bold text-[10px]">${user} <span class="text-slate-500 font-normal">${time}</span></span>${content}<div class="reaction cursor-pointer" onclick="react(this)">❤️ 0</div>`;
-            const container = document.getElementById('chat-messages');
+            
+            const container = (target === 'dm') ? document.getElementById('dm-messages') : document.getElementById('chat-messages');
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
@@ -756,7 +822,6 @@
             }
         }
 
-        // DM PANEL LOGIC
         function openDM(userName) {
             activeDMUser = userName;
             document.getElementById('dm-name').innerText = userName;
@@ -774,9 +839,7 @@
             const input = document.getElementById('dm-input');
             const msg = input.value;
             if (!msg || !dataConn || !activeDMUser) return;
-            
             dataConn.send(encrypt(JSON.stringify({ type: 'chat', user: myData.name, msg: msg, type_chat: 'text' })));
-            
             const div = document.createElement('div');
             div.className = "message-bubble flex flex-col items-end";
             div.innerHTML = `<span class="bg-purple-600 p-2 rounded-lg text-white">${msg}</span>`;
