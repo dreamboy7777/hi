@@ -29,12 +29,8 @@
         .emoji { position: absolute; pointer-events: none; z-index: 100; animation: fall 4s linear forwards; font-size: 2rem; opacity: 0.8; }
         @keyframes fall { from { transform: translateY(-10vh) rotate(0deg); opacity: 0.8; } to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
         .dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); transition: all 0.4s ease; opacity: 0.8; z-index: 1000; width: 90%; max-width: 700px; }
-        
-        /* Fullscreen Logic */
         .fullscreen-active { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; background: black !important; border-radius: 0 !important; border: none !important; }
         .fullscreen-active video { width: 100vw !important; height: 100vh !important; object-fit: contain !important; }
-        #exit-fs-btn { position: absolute; top: 20px; right: 20px; z-index: 10001; display: none; }
-        
         .profile-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3000; display: none; width: 500px; max-width: 90vw; }
         .visualizer-bar { width: 3px; height: 10px; background: var(--neon); animation: bounce 0.5s ease-in-out infinite alternate; }
         @keyframes bounce { from { height: 5px; } to { height: 20px; } }
@@ -68,11 +64,11 @@
                 <div class="flex flex-col items-center gap-4">
                     <div class="relative">
                         <img id="pfp-preview" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Default" class="w-20 h-20 rounded-full border border-slate-700 p-1 object-cover opacity-80">
-                        <input type="file" id="pfp-upload" accept="image/*" class="hidden">
+                        <input type="file" id="pfp-upload" accept="image/*,image/gif" class="hidden">
                         <button id="pfp-btn" class="absolute -bottom-2 -right-2 bg-slate-800 text-slate-400 p-2 rounded-full text-xs hover:text-white transition">📷</button>
                     </div>
                     <div class="flex flex-col gap-2 w-full">
-                        <input type="file" id="banner-upload" accept="image/*" class="bg-slate-900/60 border border-slate-800 p-2 rounded-lg text-xs text-slate-300 outline-none cursor-pointer">
+                        <input type="file" id="banner-upload" accept="image/*,image/gif" class="bg-slate-900/60 border border-slate-800 p-2 rounded-lg text-xs text-slate-300 outline-none cursor-pointer">
                         <input id="user-desc" class="bg-slate-900/60 border border-slate-800 p-2 rounded-lg text-xs text-slate-300 outline-none" placeholder="Bio">
                         <input id="user-song" class="bg-slate-900/60 border border-slate-800 p-2 rounded-lg text-xs text-slate-300 outline-none" placeholder="Profile Song">
                         <div class="flex items-center gap-2">
@@ -131,7 +127,6 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-hidden">
                 <div id="video-container" class="lg:col-span-3 relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl gpu">
-                    <button id="exit-fs-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-red-500 transition">Exit Fullscreen</button>
                     <div id="banner-display" class="absolute top-0 left-0 w-full h-16 bg-cover bg-center opacity-50 border-b border-slate-800 z-20"></div>
                     <video id="remote-video" autoplay playsinline class="w-full h-full object-contain relative z-10"></video>
                     <div id="cursor-layer"></div>
@@ -279,14 +274,14 @@
         }
 
         window.onload = () => {
-            // RESET AUTH ON UPDATE
+            // FORCE RESET AUTH FOR UPDATE
             localStorage.removeItem('mykels_auth');
             
             const isAuthorized = localStorage.getItem('mykels_auth') === 'true';
             if (loadProfile() && isAuthorized) {
                 bypassJoinScreen();
             }
-            notify("SYSTEM UPDATE v4.1: All sessions reset. Welcome back!", "update");
+            notify("SYSTEM UPDATE v5.0: All sessions reset. Welcome back!", "update");
         };
 
         function bypassJoinScreen() {
@@ -334,11 +329,7 @@
                 startBtn.classList.replace('bg-slate-800', 'bg-purple-600');
                 startBtn.classList.replace('text-slate-400', 'text-white');
                 startBtn.classList.remove('cursor-not-allowed');
-                
-                // AUTO-ENTER TRIGGER
-                setTimeout(() => {
-                    startBtn.click();
-                }, 500);
+                setTimeout(() => startBtn.click(), 500);
             } else {
                 const startBtn = document.getElementById('start-btn');
                 startBtn.disabled = true;
